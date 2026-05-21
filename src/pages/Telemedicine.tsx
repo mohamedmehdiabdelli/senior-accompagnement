@@ -1,6 +1,6 @@
-import { Video, Stethoscope, Star, Search, Pill, MapPin, Building2, ChevronRight } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Phone, Video, Stethoscope, Star, Search, Pill, MapPin, Building2, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { getDoctors } from "../lib/db";
 import type { Doctor } from "../lib/db";
 
@@ -17,34 +17,14 @@ export default function Telemedicine() {
   const [filter, setFilter] = useState('tous');
   const [medSearch, setMedSearch] = useState("");
 
-  // Robust data fetching with a mounted check to prevent state updates on unmounted components
   useEffect(() => {
-    let isMounted = true;
-    setLoadingDoctors(true);
-
-    getDoctors()
-      .then(data => {
-        if (isMounted) {
-          // Fallback to empty array to prevent .map() crashes later
-          setDoctors(data || []); 
-          setLoadingDoctors(false);
-        }
-      })
-      .catch(error => {
-        console.error("Failed to fetch doctors:", error);
-        if (isMounted) {
-          setDoctors([]);
-          setLoadingDoctors(false);
-        }
-      });
-
-    return () => { isMounted = false; };
+    getDoctors().then(data => {
+      setDoctors(data);
+      setLoadingDoctors(false);
+    });
   }, []);
 
-  // Using useMemo and Set for cleaner, more efficient unique specialty generation
-  const specialties = useMemo(() => {
-    return ['tous', ...Array.from(new Set(doctors.map(d => d.specialty)))];
-  }, [doctors]);
+  const specialties = ['tous', ...doctors.map(d => d.specialty).filter((s, i, arr) => arr.indexOf(s) === i)];
 
   const filteredDoctors = doctors.filter(d => filter === 'tous' || d.specialty === filter);
 
