@@ -82,6 +82,20 @@ export interface HealthProduct {
   created_at?: string;
 }
 
+export interface ClothingItem {
+  id: string;
+  owner_id: string;
+  resident_name: string;
+  item_name: string;
+  category: 'Chemise' | 'Pantalon' | 'Robe' | 'Pyjama' | 'Veste' | 'T-shirt';
+  size: 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
+  color: 'Blanc' | 'Bleu' | 'Gris' | 'Beige' | 'Noir' | 'Rose';
+  type: 'Jour' | 'Nuit' | 'Hiver' | 'Été' | 'Sortie';
+  image_url: string;
+  location: string;
+  created_at?: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;

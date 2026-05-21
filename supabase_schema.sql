@@ -104,6 +104,21 @@ create table if not exists care_logs (
   created_at timestamptz default now()
 );
 
+-- ─── CLOTHING ITEMS ────────────────────────────────────────
+create table if not exists clothing_items (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  resident_name text not null,
+  item_name text not null,
+  category text not null check (category in ('Chemise','Pantalon','Robe','Pyjama','Veste','T-shirt')),
+  size text not null check (size in ('XS','S','M','L','XL','XXL')),
+  color text not null check (color in ('Blanc','Bleu','Gris','Beige','Noir','Rose')),
+  type text not null check (type in ('Jour','Nuit','Hiver','Été','Sortie')),
+  image_url text default '',
+  location text not null default '',
+  created_at timestamptz default now()
+);
+
 -- ─── HEALTH PRODUCTS ────────────────────────────────────────
 create table if not exists health_products (
   id uuid primary key default gen_random_uuid(),
@@ -150,3 +165,10 @@ create policy "Public read health_products"  on health_products  for select usin
 create policy "Auth write health_products"   on health_products  for insert with check (auth.role() = 'authenticated');
 create policy "Auth update health_products"  on health_products  for update using (auth.role() = 'authenticated');
 create policy "Auth delete health_products"  on health_products  for delete using (auth.role() = 'authenticated');
+
+alter table clothing_items enable row level security;
+
+create policy "Users can read own clothing items"   on clothing_items for select using (owner_id = auth.uid());
+create policy "Users can insert own clothing items" on clothing_items for insert with check (owner_id = auth.uid());
+create policy "Users can update own clothing items" on clothing_items for update using (owner_id = auth.uid());
+create policy "Users can delete own clothing items" on clothing_items for delete using (owner_id = auth.uid());

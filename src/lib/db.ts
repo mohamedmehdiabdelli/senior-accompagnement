@@ -3,7 +3,7 @@
  * Uses Supabase when configured, falls back to localStorage for offline/demo mode.
  * This ensures the app works even before Supabase is set up.
  */
-import { supabase, Reminder, Senior, Medicine, VitalRecord, CareLog, HealthProduct } from './supabase';
+import { supabase, Reminder, Senior, Medicine, VitalRecord, CareLog, HealthProduct, ClothingItem } from './supabase';
 
 const isSupabaseConfigured = () => 
   !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -222,6 +222,64 @@ export async function deleteProduct(id: string): Promise<void> {
     return;
   }
   await supabase.from('health_products').delete().eq('id', id);
+}
+
+export async function getClothingItems(ownerId?: string): Promise<ClothingItem[]> {
+  if (!isSupabaseConfigured()) {
+    return getDefaultClothingItems();
+  }
+  if (!ownerId) return [];
+  const { data, error } = await supabase
+    .from('clothing_items')
+    .select('*')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error(error);
+    return [];
+  }
+  return data as ClothingItem[];
+}
+
+export function getDefaultClothingItems(): ClothingItem[] {
+  return [
+    {
+      id: 'cl-1',
+      owner_id: 'local',
+      resident_name: 'Mme. Fatma Ben Ali',
+      item_name: 'Chemise en coton',
+      category: 'Chemise',
+      size: 'L',
+      color: 'Blanc',
+      type: 'Jour',
+      image_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800',
+      location: 'Armoire A - étagère 2'
+    },
+    {
+      id: 'cl-2',
+      owner_id: 'local',
+      resident_name: 'Mme. Fatma Ben Ali',
+      item_name: 'Pyjama chaud',
+      category: 'Pyjama',
+      size: 'XL',
+      color: 'Bleu',
+      type: 'Nuit',
+      image_url: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=800',
+      location: 'Armoire A - tiroir 1'
+    },
+    {
+      id: 'cl-3',
+      owner_id: 'local',
+      resident_name: 'Mr. Béchir Mezghani',
+      item_name: 'Veste légère',
+      category: 'Veste',
+      size: 'M',
+      color: 'Gris',
+      type: 'Sortie',
+      image_url: 'https://images.unsplash.com/photo-1520975929533-8c6bbd91e2a1?auto=format&fit=crop&q=80&w=800',
+      location: 'Armoire B - portants'
+    }
+  ];
 }
 
 // --------- SUBSCRIPTION ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
