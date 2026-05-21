@@ -1,29 +1,23 @@
-import { MapPin, AlertTriangle, ShieldCheck, Phone, Mail, UserPlus, Camera, CameraOff, RefreshCw } from "lucide-react";
+import { MapPin, AlertTriangle, ShieldCheck, Phone, Mail, UserPlus, Camera, RefreshCw } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-
-// DELETE the hardcoded array
-// ADD imports:
-import { useState, useRef, useEffect } from 'react'; // already there
-import { getFamilyContacts, addFamilyContact, deleteFamilyContact } from '../lib/db';
+import { getFamilyContacts } from '../lib/db';
 import type { FamilyContact } from '../lib/db';
 import { useAuth } from '../context/AuthContext';
 
-// ADD inside the component:
-const { user, profile } = useAuth();
-const userId = user?.id || profile?.id || 'local';
-const [familyContacts, setFamilyContacts] = useState<FamilyContact[]>([]);
-
-useEffect(() => {
-  getFamilyContacts(userId).then(setFamilyContacts);
-}, [userId]);
-
 export default function Alerte() {
+  const { user, profile } = useAuth();
+  const userId = user?.id || profile?.id || 'local';
+  const [familyContacts, setFamilyContacts] = useState<FamilyContact[]>([]);
   const [alertSent, setAlertSent] = useState(false);
   const [holding, setHolding] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    getFamilyContacts(userId).then(setFamilyContacts);
+  }, [userId]);
 
   const triggerAlert = () => {
     setAlertSent(true);
@@ -73,7 +67,6 @@ export default function Alerte() {
             <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
                {holding && <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 1.5 }} className="h-full bg-red-600" />}
             </div>
-            
             <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 shadow-inner">
               <AlertTriangle size={36} className={holding ? 'animate-bounce' : 'animate-pulse'} />
             </div>
@@ -81,7 +74,6 @@ export default function Alerte() {
               <h2 className="text-2xl font-bold text-slate-800 title-serif">Bouton SOS</h2>
               <p className="text-slate-500 text-sm">Maintenir 2s pour alerter</p>
             </div>
-            
             <motion.button
               onMouseDown={() => setHolding(true)}
               onMouseUp={() => setHolding(false)}
@@ -89,7 +81,7 @@ export default function Alerte() {
               onTouchStart={() => setHolding(true)}
               onTouchEnd={() => setHolding(false)}
               onPointerDown={() => setHolding(true)}
-              onPointerUp={(e) => {
+              onPointerUp={() => {
                 if (holding) triggerAlert();
                 setHolding(false);
               }}
@@ -120,7 +112,7 @@ export default function Alerte() {
               <h2 className="text-2xl font-bold text-slate-800 title-serif">Visio SOS</h2>
               <p className="text-slate-500 text-sm">{showCamera ? "Caméra activée" : "Activer la caméra"}</p>
             </div>
-            <button 
+            <button
               onClick={toggleCamera}
               className={`w-full py-6 rounded-[2rem] text-xl font-bold shadow-xl transition-all ${showCamera ? 'bg-slate-900 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100'}`}
             >
@@ -188,13 +180,10 @@ export default function Alerte() {
               </div>
             </>
           )}
-          
           <div className="absolute bottom-8 left-8 right-8 bg-white/80 backdrop-blur-2xl p-8 rounded-[3rem] shadow-2xl border border-white flex justify-between items-center z-30">
             <div className="flex items-center gap-6">
-              <div className="relative">
-                 <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
-                    <ShieldCheck size={28} />
-                 </div>
+              <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+                 <ShieldCheck size={28} />
               </div>
               <div>
                 <p className="font-black text-xl text-slate-800 tracking-tight">{showCamera ? "Visuel sécurisé" : "Localisation active"}</p>
