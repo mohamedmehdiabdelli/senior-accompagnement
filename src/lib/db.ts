@@ -266,3 +266,121 @@ function getDefaultProducts(): HealthProduct[] {
     { id: '4', name: 'Attelle bras complet', category: 'Santé', price: '32 Dt', image_url: 'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?auto=format&fit=crop&q=80&w=800', description: 'Immobilisation complète du bras.', contact: '29 636 686', type: 'buy' },
   ];
 }
+// ─── DOCTORS ─────────────────────────────────────────────────────────────────
+
+export interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  image_url: string;
+  availability: string;
+  phone: string;
+  price: string;
+  rating: number;
+  active: boolean;
+}
+
+export async function getDoctors(): Promise<Doctor[]> {
+  if (!isSupabaseConfigured()) return getDefaultDoctors();
+  const { data, error } = await supabase
+    .from('doctors')
+    .select('*')
+    .eq('active', true)
+    .order('created_at');
+  if (error) { console.error(error); return getDefaultDoctors(); }
+  return data as Doctor[];
+}
+
+function getDefaultDoctors(): Doctor[] {
+  return [
+    { id: '1', name: 'Dr Sarah Mansouri',  specialty: 'Généraliste',      image_url: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 14:00", phone: '01 44 55 66 77', price: '25€',    rating: 4.9, active: true },
+    { id: '2', name: 'Dr Jean Dupont',     specialty: 'Cardiologue',       image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: 'Demain, 09:30',       phone: '01 22 33 44 55', price: '50€',    rating: 4.8, active: true },
+    { id: '3', name: 'Dr Marc Lefebvre',   specialty: 'Gériatre',          image_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400', availability: 'Vendredi, 11:15',     phone: '01 77 88 99 00', price: '40€',    rating: 5.0, active: true },
+    { id: '4', name: 'M. Karim Haddad',    specialty: 'Kinésithérapeute',  image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 16:00", phone: '01 88 77 66 55', price: '35€',    rating: 4.7, active: true },
+    { id: '5', name: 'Mme Clara Rossi',    specialty: 'Infirmière',        image_url: 'https://images.unsplash.com/photo-1590611380053-9da423dc03bb?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 17:45", phone: '01 66 55 44 33', price: 'Gratuit', rating: 4.9, active: true },
+  ];
+}
+
+// ─── PSYCHOLOGISTS ────────────────────────────────────────────────────────────
+
+export interface Psychologist {
+  id: string;
+  name: string;
+  specialty: string;
+  image_url: string;
+  availability: string;
+  phone: string;
+  price: string;
+  active: boolean;
+}
+
+export async function getPsychologists(): Promise<Psychologist[]> {
+  if (!isSupabaseConfigured()) return getDefaultPsychologists();
+  const { data, error } = await supabase
+    .from('psychologists')
+    .select('*')
+    .eq('active', true)
+    .order('created_at');
+  if (error) { console.error(error); return getDefaultPsychologists(); }
+  return data as Psychologist[];
+}
+
+function getDefaultPsychologists(): Psychologist[] {
+  return [
+    { id: '1', name: 'Dr. Marie Laurent', specialty: 'Gérontopsychologue', image_url: 'https://images.unsplash.com/photo-1559839734-2b71f15367ef?auto=format&fit=crop&q=80&w=200', availability: 'Disponible demain',        phone: '01 23 45 67 89', price: '60€ / séance', active: true },
+    { id: '2', name: 'Dr. Jean Dupont',   specialty: 'Thérapie Cognitive', image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200', availability: 'Disponible cette semaine', phone: '01 98 76 54 32', price: '55€ / séance', active: true },
+  ];
+}
+
+// ─── FAMILY CONTACTS ─────────────────────────────────────────────────────────
+
+export interface FamilyContact {
+  id: string;
+  user_id: string;
+  name: string;
+  relation: string;
+  phone: string;
+  image_url: string;
+}
+
+export async function getFamilyContacts(userId: string): Promise<FamilyContact[]> {
+  if (!isSupabaseConfigured()) {
+    const raw = localStorage.getItem(`family_contacts_${userId}`);
+    return raw ? JSON.parse(raw) : getDefaultContacts();
+  }
+  const { data, error } = await supabase
+    .from('family_contacts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at');
+  if (error) { console.error(error); return []; }
+  return data as FamilyContact[];
+}
+
+export async function addFamilyContact(c: Omit<FamilyContact, 'id'>): Promise<FamilyContact | null> {
+  if (!isSupabaseConfigured()) {
+    const contacts = await getFamilyContacts(c.user_id);
+    const newC = { ...c, id: crypto.randomUUID() };
+    localStorage.setItem(`family_contacts_${c.user_id}`, JSON.stringify([...contacts, newC]));
+    return newC;
+  }
+  const { data, error } = await supabase.from('family_contacts').insert(c).select().single();
+  if (error) { console.error(error); return null; }
+  return data as FamilyContact;
+}
+
+export async function deleteFamilyContact(id: string, userId: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const contacts = await getFamilyContacts(userId);
+    localStorage.setItem(`family_contacts_${userId}`, JSON.stringify(contacts.filter(c => c.id !== id)));
+    return;
+  }
+  await supabase.from('family_contacts').delete().eq('id', id);
+}
+
+function getDefaultContacts(): FamilyContact[] {
+  return [
+    { id: '1', user_id: 'local', name: 'Marie (Fille)', relation: 'Fille', phone: '06 12 34 56 78', image_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100' },
+    { id: '2', user_id: 'local', name: 'Thomas (Fils)', relation: 'Fils',  phone: '06 98 76 54 32', image_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100' },
+  ];
+}
