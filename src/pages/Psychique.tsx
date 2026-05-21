@@ -3,10 +3,18 @@ import { Send, User, Bot, Phone, Video } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from "motion/react";
 
-const psychologists = [
-  { name: "Dr. Marie Laurent", specialty: "Gérontopsychologue", phone: "01 23 45 67 89", price: "60€ / séance", availability: "Disponible demain", image: "https://images.unsplash.com/photo-1559839734-2b71f15367ef?auto=format&fit=crop&q=80&w=200" },
-  { name: "Dr. Jean Dupont", specialty: "Thérapie Cognitive", phone: "01 98 76 54 32", price: "55€ / séance", availability: "Disponible cette semaine", image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200" }
-];
+// DELETE the hardcoded array
+// ADD imports:
+import { useEffect } from 'react'; // already imported
+import { getPsychologists } from '../lib/db';
+import type { Psychologist } from '../lib/db';
+
+// ADD state inside the component:
+const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
+
+useEffect(() => {
+  getPsychologists().then(setPsychologists);
+}, []);
 
 export default function Psychique() {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
@@ -154,7 +162,7 @@ Réponds en 2-3 phrases maximum pour rester accessible.`
           {psychologists.map(p => (
             <div key={p.name} className="bg-white rounded-[2.5rem] p-6 shadow-lg border border-slate-50 space-y-4">
               <div className="flex gap-4 items-center">
-                <img src={p.image} alt={p.name} className="w-14 h-14 rounded-2xl object-cover" />
+                <img src={p.image_url} alt={p.name} className="w-14 h-14 rounded-2xl object-cover" />
                 <div>
                   <h4 className="font-bold text-slate-800">{p.name}</h4>
                   <p className="text-sm text-purple-600 font-medium">{p.specialty}</p>
