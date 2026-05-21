@@ -1,0 +1,9 @@
+{
+  "name": "Tamini",
+  "description": "Une plateforme bienveillante et professionnelle dédiée à l'accompagnement des personnes âgées et des maisons de retraite : santé, psychologie, rappels, sécurité et loisirs.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ],
+  "majorCapabilities": []
+}

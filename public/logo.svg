@@ -1,0 +1,12 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#g)"/>
+  <path d="M100 60 C 80 60, 65 75, 65 95 C 65 120, 100 145, 100 145 C 100 145, 135 120, 135 95 C 135 75, 120 60, 100 60 Z"
+        fill="white" opacity="0.95"/>
+  <text x="100" y="180" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="bold" fill="white" opacity="0.9">tamini</text>
+</svg>

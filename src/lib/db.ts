@@ -1,0 +1,268 @@
+/**
+ * Database abstraction layer.
+ * Uses Supabase when configured, falls back to localStorage for offline/demo mode.
+ * This ensures the app works even before Supabase is set up.
+ */
+import { supabase, Reminder, Senior, Medicine, VitalRecord, CareLog, HealthProduct } from './supabase';
+
+const isSupabaseConfigured = () => 
+  !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// ─── REMINDERS ───────────────────────────────────────────────────────────────
+
+export async function getReminders(): Promise<Reminder[]> {
+  if (!isSupabaseConfigured()) {
+    const raw = localStorage.getItem('reminders');
+    return raw ? JSON.parse(raw) : getDefaultReminders();
+  }
+  const { data, error } = await supabase.from('reminders').select('*').order('time');
+  if (error) { console.error(error); return getDefaultReminders(); }
+  return data as Reminder[];
+}
+
+export async function addReminder(r: Omit<Reminder, 'id' | 'created_at'>): Promise<Reminder | null> {
+  if (!isSupabaseConfigured()) {
+    const reminders = await getReminders();
+    const newR = { ...r, id: crypto.randomUUID() };
+    const updated = [...reminders, newR];
+    localStorage.setItem('reminders', JSON.stringify(updated));
+    return newR;
+  }
+  const { data, error } = await supabase.from('reminders').insert(r).select().single();
+  if (error) { console.error(error); return null; }
+  return data as Reminder;
+}
+
+export async function toggleReminder(id: string, active: boolean): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const reminders = await getReminders();
+    const updated = reminders.map(r => r.id === id ? { ...r, active } : r);
+    localStorage.setItem('reminders', JSON.stringify(updated));
+    return;
+  }
+  await supabase.from('reminders').update({ active }).eq('id', id);
+}
+
+export async function deleteReminder(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const reminders = await getReminders();
+    localStorage.setItem('reminders', JSON.stringify(reminders.filter(r => r.id !== id)));
+    return;
+  }
+  await supabase.from('reminders').delete().eq('id', id);
+}
+
+// ─── SENIORS (Caregiver space) ────────────────────────────────────────────────
+
+export async function getSeniors(): Promise<Senior[]> {
+  if (!isSupabaseConfigured()) {
+    const raw = localStorage.getItem('seniors');
+    return raw ? JSON.parse(raw) : getDefaultSeniors();
+  }
+  const { data, error } = await supabase.from('seniors').select('*');
+  if (error) { console.error(error); return getDefaultSeniors(); }
+  return data as Senior[];
+}
+
+export async function addSenior(s: Omit<Senior, 'id' | 'created_at'>): Promise<Senior | null> {
+  if (!isSupabaseConfigured()) {
+    const seniors = await getSeniors();
+    const newS = { ...s, id: crypto.randomUUID() };
+    localStorage.setItem('seniors', JSON.stringify([...seniors, newS]));
+    return newS;
+  }
+  const { data, error } = await supabase.from('seniors').insert(s).select().single();
+  if (error) { console.error(error); return null; }
+  return data as Senior;
+}
+
+export async function deleteSenior(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const seniors = await getSeniors();
+    localStorage.setItem('seniors', JSON.stringify(seniors.filter(s => s.id !== id)));
+    return;
+  }
+  await supabase.from('seniors').delete().eq('id', id);
+}
+
+// ─── MEDICINES ────────────────────────────────────────────────────────────────
+
+export async function getMedicines(seniorId: string): Promise<Medicine[]> {
+  const today = new Date().toISOString().split('T')[0];
+  if (!isSupabaseConfigured()) {
+    const raw = localStorage.getItem(`medicines_${seniorId}`);
+    return raw ? JSON.parse(raw) : [];
+  }
+  const { data, error } = await supabase
+    .from('medicines')
+    .select('*')
+    .eq('senior_id', seniorId)
+    .eq('date', today);
+  if (error) { console.error(error); return []; }
+  return data as Medicine[];
+}
+
+export async function addMedicine(m: Omit<Medicine, 'id'>): Promise<Medicine | null> {
+  if (!isSupabaseConfigured()) {
+    const medicines = await getMedicines(m.senior_id);
+    const newM = { ...m, id: crypto.randomUUID() };
+    localStorage.setItem(`medicines_${m.senior_id}`, JSON.stringify([...medicines, newM]));
+    return newM;
+  }
+  const { data, error } = await supabase.from('medicines').insert(m).select().single();
+  if (error) { console.error(error); return null; }
+  return data as Medicine;
+}
+
+export async function toggleMedicine(id: string, seniorId: string, taken: boolean): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const medicines = await getMedicines(seniorId);
+    const updated = medicines.map(m => m.id === id ? { ...m, taken } : m);
+    localStorage.setItem(`medicines_${seniorId}`, JSON.stringify(updated));
+    return;
+  }
+  await supabase.from('medicines').update({ taken }).eq('id', id);
+}
+
+export async function deleteMedicine(id: string, seniorId: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const medicines = await getMedicines(seniorId);
+    localStorage.setItem(`medicines_${seniorId}`, JSON.stringify(medicines.filter(m => m.id !== id)));
+    return;
+  }
+  await supabase.from('medicines').delete().eq('id', id);
+}
+
+// ─── VITALS ───────────────────────────────────────────────────────────────────
+
+export async function getVitals(seniorId: string): Promise<VitalRecord[]> {
+  if (!isSupabaseConfigured()) {
+    const raw = localStorage.getItem(`vitals_${seniorId}`);
+    return raw ? JSON.parse(raw) : [];
+  }
+  const { data, error } = await supabase
+    .from('vitals')
+    .select('*')
+    .eq('senior_id', seniorId)
+    .order('date', { ascending: true })
+    .limit(30);
+  if (error) { console.error(error); return []; }
+  return data as VitalRecord[];
+}
+
+export async function addVital(v: Omit<VitalRecord, 'id'>): Promise<VitalRecord | null> {
+  if (!isSupabaseConfigured()) {
+    const vitals = await getVitals(v.senior_id);
+    const newV = { ...v, id: crypto.randomUUID() };
+    localStorage.setItem(`vitals_${v.senior_id}`, JSON.stringify([...vitals, newV]));
+    return newV;
+  }
+  const { data, error } = await supabase.from('vitals').insert(v).select().single();
+  if (error) { console.error(error); return null; }
+  return data as VitalRecord;
+}
+
+// ─── CARE LOGS ────────────────────────────────────────────────────────────────
+
+export async function getCareLogs(seniorId: string): Promise<CareLog[]> {
+  if (!isSupabaseConfigured()) {
+    const raw = localStorage.getItem(`logs_${seniorId}`);
+    return raw ? JSON.parse(raw) : [];
+  }
+  const { data, error } = await supabase
+    .from('care_logs')
+    .select('*')
+    .eq('senior_id', seniorId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) { console.error(error); return []; }
+  return data as CareLog[];
+}
+
+export async function addCareLog(log: Omit<CareLog, 'id' | 'created_at'>): Promise<CareLog | null> {
+  if (!isSupabaseConfigured()) {
+    const logs = await getCareLogs(log.senior_id);
+    const newLog = { ...log, id: crypto.randomUUID() };
+    localStorage.setItem(`logs_${log.senior_id}`, JSON.stringify([newLog, ...logs]));
+    return newLog;
+  }
+  const { data, error } = await supabase.from('care_logs').insert(log).select().single();
+  if (error) { console.error(error); return null; }
+  return data as CareLog;
+}
+
+// ─── HEALTH PRODUCTS ─────────────────────────────────────────────────────────
+
+export async function getProducts(): Promise<HealthProduct[]> {
+  if (!isSupabaseConfigured()) {
+    const raw = localStorage.getItem('health_products');
+    return raw ? JSON.parse(raw) : getDefaultProducts();
+  }
+  const { data, error } = await supabase.from('health_products').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return getDefaultProducts(); }
+  return data as HealthProduct[];
+}
+
+export async function addProduct(p: Omit<HealthProduct, 'id' | 'created_at'>): Promise<HealthProduct | null> {
+  if (!isSupabaseConfigured()) {
+    const products = await getProducts();
+    const newP = { ...p, id: crypto.randomUUID() };
+    localStorage.setItem('health_products', JSON.stringify([newP, ...products]));
+    return newP;
+  }
+  const { data, error } = await supabase.from('health_products').insert(p).select().single();
+  if (error) { console.error(error); return null; }
+  return data as HealthProduct;
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const products = await getProducts();
+    localStorage.setItem('health_products', JSON.stringify(products.filter(p => p.id !== id)));
+    return;
+  }
+  await supabase.from('health_products').delete().eq('id', id);
+}
+
+// ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
+
+export function getSubscriptionStatus(): boolean {
+  return localStorage.getItem('is_subscribed') === 'true';
+}
+
+export function setSubscriptionStatus(value: boolean): void {
+  localStorage.setItem('is_subscribed', String(value));
+}
+
+// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+
+function getDefaultReminders(): Reminder[] {
+  return [
+    { id: '1', user_id: 'local', type: 'medicine', title: 'Doliprane 500mg', time: '08:00', description: 'Après le petit déjeuner', active: true },
+    { id: '2', user_id: 'local', type: 'meal', title: 'Petit Déjeuner', time: '08:30', description: 'Penser aux fibres', active: true },
+    { id: '3', user_id: 'local', type: 'appointment', title: 'Dr Mansouri', time: '15:30', description: 'Visioconférence', active: true },
+    { id: '4', user_id: 'local', type: 'prayer', title: 'Prière Asr', time: '16:45', description: 'Moment calme', active: true }
+  ];
+}
+
+function getDefaultSeniors(): Senior[] {
+  return [
+    {
+      id: '1',
+      caregiver_id: 'local',
+      name: 'Mme. Fatma Ben Ali',
+      age: 82,
+      condition: 'Hypertension & Diabète de type 2',
+      image_url: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=400'
+    }
+  ];
+}
+
+function getDefaultProducts(): HealthProduct[] {
+  return [
+    { id: '1', name: 'Chaise roulante pliable', category: 'Mobilité', price: '152 Dt', image_url: 'https://images.unsplash.com/photo-1544216717-3bbf52512659?auto=format&fit=crop&q=80&w=800', description: 'Légère, pliable et robuste.', contact: '29 636 686', type: 'buy' },
+    { id: '2', name: 'Béquilles ergonomiques', category: 'Mobilité', price: '11 Dt', image_url: 'https://images.unsplash.com/photo-1579684453423-f84349ef1afb?auto=format&fit=crop&q=80&w=800', description: 'Réglables et confortables.', contact: '29 636 686', type: 'buy' },
+    { id: '3', name: 'Ceinture lombaire', category: 'Santé', price: '37 Dt', image_url: 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?auto=format&fit=crop&q=80&w=800', description: 'Soutien du dos ergonomique.', contact: '29 636 686', type: 'buy' },
+    { id: '4', name: 'Attelle bras complet', category: 'Santé', price: '32 Dt', image_url: 'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?auto=format&fit=crop&q=80&w=800', description: 'Immobilisation complète du bras.', contact: '29 636 686', type: 'buy' },
+  ];
+}
