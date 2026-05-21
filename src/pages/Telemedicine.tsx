@@ -2,13 +2,22 @@ import { User, Phone, Video, Stethoscope, Star, Clock, Search, Plus, Calendar, P
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-const doctors = [
-  { id: 1, name: "Dr Sarah Mansouri", specialty: "Généraliste", image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400", availability: "Aujourd'hui, 14:00", phone: "01 44 55 66 77", price: "25€", rating: 4.9 },
-  { id: 2, name: "Dr Jean Dupont", specialty: "Cardiologue", image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400", availability: "Demain, 09:30", phone: "01 22 33 44 55", price: "50€", rating: 4.8 },
-  { id: 3, name: "Dr Marc Lefebvre", specialty: "Gériatre", image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400", availability: "Vendredi, 11:15", phone: "01 77 88 99 00", price: "40€", rating: 5.0 },
-  { id: 5, name: "M. Karim Haddad", specialty: "Kinésithérapeute", image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400", availability: "Aujourd'hui, 16:00", phone: "01 88 77 66 55", price: "35€", rating: 4.7 },
-  { id: 4, name: "Mme Clara Rossi", specialty: "Infirmière", image: "https://images.unsplash.com/photo-1590611380053-9da423dc03bb?auto=format&fit=crop&q=80&w=400", availability: "Aujourd'hui, 17:45", phone: "01 66 55 44 33", price: "Gratuit", rating: 4.9 },
-];
+// DELETE the entire hardcoded `const doctors = [...]` array at the top
+// ADD this import at the top:
+import { getDoctors } from '../lib/db';
+import type { Doctor } from '../lib/db';
+
+// REPLACE the useState/component opening with:
+export default function Telemedicine() {
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+  const [activeView, setActiveView] = useState<'doctors' | 'pharmacy'>('doctors');
+  const [filter, setFilter] = useState('tous');
+  const [medSearch, setMedSearch] = useState("");
+
+  useEffect(() => {
+    getDoctors().then(data => { setDoctors(data); setLoadingDoctors(false); });
+  }, []);
 
 const pharmacies = [
   { name: "Pharmacie de la Mairie", stock: ["Doliprane", "Spasfon", "Vix"], status: "En stock", address: "12 rue de la Paix", distance: "450m" },
