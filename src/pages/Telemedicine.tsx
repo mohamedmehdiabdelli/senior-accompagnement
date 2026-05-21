@@ -101,7 +101,10 @@ export default function Telemedicine() {
             </aside>
 
             <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
-              {doctors.filter(d => filter === 'tous' || d.specialty === filter).map((doc) => (
+              {loadingDoctors ? (
+                <div className="col-span-2 text-center py-20 text-slate-400">Chargement...</div>
+              ) : (          
+              doctors.filter(d => filter === 'tous' || d.specialty === filter).map((doc) => (
                 <motion.div
                   key={doc.id}
                   layout
@@ -111,7 +114,7 @@ export default function Telemedicine() {
                   className="bg-white p-8 rounded-[3rem] premium-shadow border border-slate-50 flex flex-col items-center text-center space-y-6 group hover:border-blue-200 transition-all font-sans"
                 >
                   <div className="relative">
-                    <img src={doc.image} alt={doc.name} className="w-32 h-32 rounded-[2.5rem] object-cover shadow-2xl group-hover:scale-105 transition-transform duration-500" />
+                    <img src={doc.image_url} alt={doc.name} className="w-32 h-32 rounded-[2.5rem] object-cover shadow-2xl group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute -bottom-2 -right-2 bg-white px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1 shadow-md">
                        <Star size={14} className="text-yellow-400 fill-current" />
                        <span className="text-xs font-black">{doc.rating}</span>
