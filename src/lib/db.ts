@@ -8,7 +8,7 @@ import { supabase, Reminder, Senior, Medicine, VitalRecord, CareLog, HealthProdu
 const isSupabaseConfigured = () => 
   !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// ─── REMINDERS ───────────────────────────────────────────────────────────────
+// --------- REMINDERS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export async function getReminders(): Promise<Reminder[]> {
   if (!isSupabaseConfigured()) {
@@ -52,7 +52,7 @@ export async function deleteReminder(id: string): Promise<void> {
   await supabase.from('reminders').delete().eq('id', id);
 }
 
-// ─── SENIORS (Caregiver space) ────────────────────────────────────────────────
+// --------- SENIORS (Caregiver space) ------------------------------------------------------------------------------------------------------------------------------------------------
 
 export async function getSeniors(): Promise<Senior[]> {
   if (!isSupabaseConfigured()) {
@@ -85,7 +85,7 @@ export async function deleteSenior(id: string): Promise<void> {
   await supabase.from('seniors').delete().eq('id', id);
 }
 
-// ─── MEDICINES ────────────────────────────────────────────────────────────────
+// --------- MEDICINES ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export async function getMedicines(seniorId: string): Promise<Medicine[]> {
   const today = new Date().toISOString().split('T')[0];
@@ -133,7 +133,7 @@ export async function deleteMedicine(id: string, seniorId: string): Promise<void
   await supabase.from('medicines').delete().eq('id', id);
 }
 
-// ─── VITALS ───────────────────────────────────────────────────────────────────
+// --------- VITALS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export async function getVitals(seniorId: string): Promise<VitalRecord[]> {
   if (!isSupabaseConfigured()) {
@@ -162,7 +162,7 @@ export async function addVital(v: Omit<VitalRecord, 'id'>): Promise<VitalRecord 
   return data as VitalRecord;
 }
 
-// ─── CARE LOGS ────────────────────────────────────────────────────────────────
+// --------- CARE LOGS ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export async function getCareLogs(seniorId: string): Promise<CareLog[]> {
   if (!isSupabaseConfigured()) {
@@ -191,7 +191,7 @@ export async function addCareLog(log: Omit<CareLog, 'id' | 'created_at'>): Promi
   return data as CareLog;
 }
 
-// ─── HEALTH PRODUCTS ─────────────────────────────────────────────────────────
+// --------- HEALTH PRODUCTS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export async function getProducts(): Promise<HealthProduct[]> {
   if (!isSupabaseConfigured()) {
@@ -224,7 +224,7 @@ export async function deleteProduct(id: string): Promise<void> {
   await supabase.from('health_products').delete().eq('id', id);
 }
 
-// ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
+// --------- SUBSCRIPTION ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export function getSubscriptionStatus(): boolean {
   return localStorage.getItem('is_subscribed') === 'true';
@@ -234,7 +234,7 @@ export function setSubscriptionStatus(value: boolean): void {
   localStorage.setItem('is_subscribed', String(value));
 }
 
-// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+// --------- DEFAULT DATA ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 function getDefaultReminders(): Reminder[] {
   return [
@@ -266,7 +266,7 @@ function getDefaultProducts(): HealthProduct[] {
     { id: '4', name: 'Attelle bras complet', category: 'Santé', price: '32 Dt', image_url: 'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?auto=format&fit=crop&q=80&w=800', description: 'Immobilisation complète du bras.', contact: '29 636 686', type: 'buy' },
   ];
 }
-// ─── DOCTORS ─────────────────────────────────────────────────────────────────
+// --------- DOCTORS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export interface Doctor {
   id: string;
@@ -293,15 +293,15 @@ export async function getDoctors(): Promise<Doctor[]> {
 
 function getDefaultDoctors(): Doctor[] {
   return [
-    { id: '1', name: 'Dr Sarah Mansouri',  specialty: 'Généraliste',      image_url: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 14:00", phone: '01 44 55 66 77', price: '25€',    rating: 4.9, active: true },
-    { id: '2', name: 'Dr Jean Dupont',     specialty: 'Cardiologue',       image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: 'Demain, 09:30',       phone: '01 22 33 44 55', price: '50€',    rating: 4.8, active: true },
-    { id: '3', name: 'Dr Marc Lefebvre',   specialty: 'Gériatre',          image_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400', availability: 'Vendredi, 11:15',     phone: '01 77 88 99 00', price: '40€',    rating: 5.0, active: true },
-    { id: '4', name: 'M. Karim Haddad',    specialty: 'Kinésithérapeute',  image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 16:00", phone: '01 88 77 66 55', price: '35€',    rating: 4.7, active: true },
+    { id: '1', name: 'Dr Sarah Mansouri',  specialty: 'Généraliste',      image_url: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 14:00", phone: '01 44 55 66 77', price: '25---',    rating: 4.9, active: true },
+    { id: '2', name: 'Dr Jean Dupont',     specialty: 'Cardiologue',       image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: 'Demain, 09:30',       phone: '01 22 33 44 55', price: '50---',    rating: 4.8, active: true },
+    { id: '3', name: 'Dr Marc Lefebvre',   specialty: 'Gériatre',          image_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400', availability: 'Vendredi, 11:15',     phone: '01 77 88 99 00', price: '40---',    rating: 5.0, active: true },
+    { id: '4', name: 'M. Karim Haddad',    specialty: 'Kinésithérapeute',  image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 16:00", phone: '01 88 77 66 55', price: '35---',    rating: 4.7, active: true },
     { id: '5', name: 'Mme Clara Rossi',    specialty: 'Infirmière',        image_url: 'https://images.unsplash.com/photo-1590611380053-9da423dc03bb?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 17:45", phone: '01 66 55 44 33', price: 'Gratuit', rating: 4.9, active: true },
   ];
 }
 
-// ─── PSYCHOLOGISTS ────────────────────────────────────────────────────────────
+// --------- PSYCHOLOGISTS ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export interface Psychologist {
   id: string;
@@ -327,12 +327,12 @@ export async function getPsychologists(): Promise<Psychologist[]> {
 
 function getDefaultPsychologists(): Psychologist[] {
   return [
-    { id: '1', name: 'Dr. Marie Laurent', specialty: 'Gérontopsychologue', image_url: 'https://images.unsplash.com/photo-1559839734-2b71f15367ef?auto=format&fit=crop&q=80&w=200', availability: 'Disponible demain',        phone: '01 23 45 67 89', price: '60€ / séance', active: true },
-    { id: '2', name: 'Dr. Jean Dupont',   specialty: 'Thérapie Cognitive', image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200', availability: 'Disponible cette semaine', phone: '01 98 76 54 32', price: '55€ / séance', active: true },
+    { id: '1', name: 'Dr. Marie Laurent', specialty: 'Gérontopsychologue', image_url: 'https://images.unsplash.com/photo-1559839734-2b71f15367ef?auto=format&fit=crop&q=80&w=200', availability: 'Disponible demain',        phone: '01 23 45 67 89', price: '60--- / séance', active: true },
+    { id: '2', name: 'Dr. Jean Dupont',   specialty: 'Thérapie Cognitive', image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200', availability: 'Disponible cette semaine', phone: '01 98 76 54 32', price: '55--- / séance', active: true },
   ];
 }
 
-// ─── FAMILY CONTACTS ─────────────────────────────────────────────────────────
+// --------- FAMILY CONTACTS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export interface FamilyContact {
   id: string;
