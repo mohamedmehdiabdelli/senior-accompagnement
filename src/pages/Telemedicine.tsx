@@ -24,7 +24,7 @@ export default function Telemedicine() {
     });
   }, []);
 
-  const specialties = ['tous', ...Array.from(new Set(doctors.map(d => d.specialty)))];
+  const specialties = ['tous', ...doctors.map(d => d.specialty).filter((s, i, arr) => arr.indexOf(s) === i)];
 
   const filteredDoctors = doctors.filter(d => filter === 'tous' || d.specialty === filter);
 
