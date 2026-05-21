@@ -2,10 +2,21 @@ import { MapPin, AlertTriangle, ShieldCheck, Phone, Mail, UserPlus, Camera, Came
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-const familyContacts = [
-  { name: "Marie (Fille)", relation: "Fille", phone: "06 12 34 56 78", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100" },
-  { name: "Thomas (Fils)", relation: "Fils", phone: "06 98 76 54 32", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100" }
-];
+// DELETE the hardcoded array
+// ADD imports:
+import { useState, useRef, useEffect } from 'react'; // already there
+import { getFamilyContacts, addFamilyContact, deleteFamilyContact } from '../lib/db';
+import type { FamilyContact } from '../lib/db';
+import { useAuth } from '../context/AuthContext';
+
+// ADD inside the component:
+const { user, profile } = useAuth();
+const userId = user?.id || profile?.id || 'local';
+const [familyContacts, setFamilyContacts] = useState<FamilyContact[]>([]);
+
+useEffect(() => {
+  getFamilyContacts(userId).then(setFamilyContacts);
+}, [userId]);
 
 export default function Alerte() {
   const [alertSent, setAlertSent] = useState(false);
@@ -130,7 +141,7 @@ export default function Alerte() {
               <div key={idx} className="flex items-center justify-between bg-white/5 backdrop-blur-xl p-5 rounded-3xl border border-white/10 group hover:bg-white/10 transition-all">
                 <div className="flex items-center gap-5">
                   <div className="relative">
-                     <img src={c.image} alt={c.name} className="w-14 h-14 rounded-2xl border-2 border-white/20 group-hover:scale-110 transition-transform" />
+                     <img src={c.image_url} alt={c.name} className="w-14 h-14 rounded-2xl border-2 border-white/20 group-hover:scale-110 transition-transform" />
                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900" />
                   </div>
                   <div>
