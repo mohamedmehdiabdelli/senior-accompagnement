@@ -1,20 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, User, Bot, Phone, Video } from "lucide-react";
+import { Send, User, Phone, Video } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from "motion/react";
-
-// DELETE the hardcoded array
-// ADD imports:
-import { useEffect } from 'react'; // already imported
 import { getPsychologists } from '../lib/db';
 import type { Psychologist } from '../lib/db';
-
-// ADD state inside the component:
-const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
-
-useEffect(() => {
-  getPsychologists().then(setPsychologists);
-}, []);
 
 export default function Psychique() {
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
@@ -22,7 +11,12 @@ export default function Psychique() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getPsychologists().then(setPsychologists);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
