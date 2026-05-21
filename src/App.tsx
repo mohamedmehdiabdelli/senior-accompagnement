@@ -13,6 +13,7 @@ import Rappels from './pages/Rappels';
 import Alerte from './pages/Alerte';
 import Loisirs from './pages/Loisirs';
 import Caregiver from './pages/Caregiver';
+import Wardrobe from './pages/Wardrobe';
 import Landing from './pages/Landing';
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
@@ -109,6 +110,10 @@ function AppShell() {
             <Route
               path="/caregiver"
               element={!isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Caregiver /></PageWrapper>}
+            />
+            <Route
+              path="/vetements"
+              element={!isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Wardrobe /></PageWrapper>}
             />
 
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -60,6 +60,13 @@ const nursingHomeCategories = [
     image: "https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&q=80&w=800",
     to: "/caregiver",
     isFree: false
+  },
+  {
+    title: "Espace Vêtements",
+    description: "Recherchez les vêtements des résidents par catégorie, taille, couleur et type.",
+    image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&q=80&w=800",
+    to: "/vetements",
+    isFree: false
   }
 ];
 

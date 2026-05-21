@@ -111,13 +111,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     if (error) {
       console.error('Profile load error:', error);
       setProfile(null);
       return;
     }
-    setProfile(data as TaminiProfile);
+    setProfile((data as TaminiProfile | null) ?? null);
   };
 
   const signUp: AuthContextType['signUp'] = async (email, password, role, fullName) => {
@@ -146,15 +146,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          role,
+          full_name: fullName || null
+        }
+      }
+    });
     if (error) return { error: error.message };
     if (!data.user) return { error: 'Erreur inconnue lors de la création du compte.' };
 
-    const { error: pErr } = await supabase.from('profiles').insert({
+    const profileData = {
       id: data.user.id,
       email,
       role,
       full_name: fullName || null
+    };
+
+    const { error: pErr } = await supabase.from('profiles').upsert(profileData, {
+      onConflict: 'id'
     });
     if (pErr) return { error: 'Compte créé mais profil non enregistré : ' + pErr.message };
 
