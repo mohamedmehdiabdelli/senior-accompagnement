@@ -21,6 +21,7 @@ import AuthModal from './components/AuthModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { SubscriptionProvider } from './context/SubscriptionContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import platformLogo from './images/Tamani.png';
 
 export default function App() {
   return (
@@ -46,8 +47,8 @@ function AppShell() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <img src="/logo.svg" alt="Tamini" className="w-20 h-20 rounded-3xl shadow-2xl animate-pulse" />
-          <span className="text-white/70 text-sm font-medium tracking-wide">Tamini</span>
+          <img src={platformLogo} alt="Tamani" className="w-20 h-20 rounded-3xl shadow-2xl animate-pulse" />
+          <span className="text-white/70 text-sm font-medium tracking-wide">Tamani</span>
         </div>
       </div>
     );

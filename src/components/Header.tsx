@@ -1,6 +1,7 @@
 import { Home, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import platformLogo from '../images/Tamani.png';
 
 export default function Header() {
   const location = useLocation();
@@ -12,12 +13,12 @@ export default function Header() {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-3 group">
           <img
-            src="/logo.svg"
-            alt="Tamini"
+            src={platformLogo}
+            alt="Tamani"
             className="w-10 h-10 rounded-xl group-hover:scale-110 transition-transform shadow"
           />
           <span className="text-xl md:text-2xl font-bold tracking-tight text-gray-800 title-serif">
-            Tamini
+            Tamani
           </span>
         </Link>
 

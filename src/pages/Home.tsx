@@ -95,7 +95,7 @@ export default function Home() {
               Compte Premium Activé
             </>
           ) : (
-            "Bienvenue sur Tamini"
+            "Bienvenue sur Tamani"
           )}
         </div>
         <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight title-serif leading-none">
