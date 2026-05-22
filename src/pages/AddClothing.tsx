@@ -85,7 +85,7 @@ export default function AddClothing() {
       const newItem = await addClothingItem(
         {
           resident_name: residentName.trim(),
-          item_name: itemName.trim(),
+          name: itemName.trim(),
           category,
           size,
           color,

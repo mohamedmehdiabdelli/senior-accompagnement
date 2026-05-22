@@ -226,7 +226,7 @@ export async function deleteProduct(id: string): Promise<void> {
 
 export async function getClothingItems(ownerId?: string): Promise<ClothingItem[]> {
   if (!isSupabaseConfigured()) {
-    return getLocalClothingItems(ownerId);
+    return getLocalClothingItems(ownerId).map(normalizeClothingItem);
   }
   if (!ownerId) return [];
   const { data, error } = await supabase
@@ -238,7 +238,7 @@ export async function getClothingItems(ownerId?: string): Promise<ClothingItem[]
     console.error(error);
     return [];
   }
-  return data as ClothingItem[];
+  return ((data ?? []) as ClothingItem[]).map(normalizeClothingItem);
 }
 
 export async function addClothingItem(
@@ -320,7 +320,7 @@ export function getDefaultClothingItems(): ClothingItem[] {
       id: 'cl-1',
       owner_id: 'local',
       resident_name: 'Mme. Fatma Ben Ali',
-      item_name: 'Chemise en coton',
+      name: 'Chemise en coton',
       category: 'Chemise',
       size: 'L',
       color: 'Blanc',
@@ -332,7 +332,7 @@ export function getDefaultClothingItems(): ClothingItem[] {
       id: 'cl-2',
       owner_id: 'local',
       resident_name: 'Mme. Fatma Ben Ali',
-      item_name: 'Pyjama chaud',
+      name: 'Pyjama chaud',
       category: 'Pyjama',
       size: 'XL',
       color: 'Bleu',
@@ -344,7 +344,7 @@ export function getDefaultClothingItems(): ClothingItem[] {
       id: 'cl-3',
       owner_id: 'local',
       resident_name: 'Mr. Béchir Mezghani',
-      item_name: 'Veste légère',
+      name: 'Veste légère',
       category: 'Veste',
       size: 'M',
       color: 'Gris',
@@ -353,6 +353,13 @@ export function getDefaultClothingItems(): ClothingItem[] {
       location: 'Armoire B - portants'
     }
   ];
+}
+
+function normalizeClothingItem(item: ClothingItem & { item_name?: string }): ClothingItem {
+  return {
+    ...item,
+    name: item.name || item.item_name || ''
+  };
 }
 
 // --------- SUBSCRIPTION ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

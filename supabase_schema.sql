@@ -109,7 +109,7 @@ create table if not exists clothing_items (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
   resident_name text not null,
-  item_name text not null,
+  name text not null,
   category text not null check (category in ('Chemise','Pantalon','Robe','Pyjama','Veste','T-shirt')),
   size text not null check (size in ('XS','S','M','L','XL','XXL')),
   color text not null check (color in ('Blanc','Bleu','Gris','Beige','Noir','Rose')),

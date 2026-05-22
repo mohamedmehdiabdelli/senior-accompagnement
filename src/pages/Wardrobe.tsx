@@ -47,7 +47,7 @@ export default function Wardrobe() {
     const matchesColor = selectedColor === 'Toutes' || item.color === selectedColor;
     const matchesType = selectedType === 'Tous' || item.type === selectedType;
     const search = query.trim().toLowerCase();
-    const matchesQuery = !search || [item.item_name, item.resident_name, item.location].some(value => value.toLowerCase().includes(search));
+    const matchesQuery = !search || [item.name, item.resident_name, item.location].some(value => value.toLowerCase().includes(search));
 
     return matchesResident && matchesCategory && matchesSize && matchesColor && matchesType && matchesQuery;
   });
@@ -173,14 +173,14 @@ export default function Wardrobe() {
             <div className="overflow-hidden rounded-[2rem] mb-5 h-52 bg-slate-100">
               <img
                 src={item.image_url || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=800'}
-                alt={item.item_name}
+                alt={item.name}
                 className="h-full w-full object-cover"
               />
             </div>
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <p className="text-xs font-black uppercase tracking-wider text-emerald-600 mb-2">{item.resident_name}</p>
-                <h2 className="text-2xl font-black text-slate-800 title-serif">{item.item_name}</h2>
+                <h2 className="text-2xl font-black text-slate-800 title-serif">{item.name}</h2>
               </div>
               <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
                 <Sparkles size={20} />
