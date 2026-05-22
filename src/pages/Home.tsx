@@ -153,7 +153,7 @@ export default function Home() {
         </div>
         <div className="relative z-10 shrink-0">
           <button className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-bold text-xl hover:scale-105 transition-transform shadow-xl">
-            Appeler le 0800 123 456
+            Appeler le 94 415 663
           </button>
         </div>
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20" />
