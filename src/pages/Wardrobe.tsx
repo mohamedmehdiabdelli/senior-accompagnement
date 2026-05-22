@@ -68,13 +68,14 @@ export default function Wardrobe() {
     const confirmed = window.confirm('Supprimer ce vêtement de l’armoire ?');
     if (!confirmed) return;
 
+    const previousItems = clothingItems;
+    setClothingItems(currentItems => currentItems.filter(item => item.id !== itemId));
     setDeletingId(itemId);
     try {
       await deleteClothingItem(itemId, profile.id);
-      const items = await getClothingItems(profile.id);
-      setClothingItems(items);
     } catch (error) {
       console.error('Delete clothing item error:', error);
+      setClothingItems(previousItems);
       window.alert('Impossible de supprimer ce vêtement.');
     } finally {
       setDeletingId(null);
@@ -190,12 +191,22 @@ export default function Wardrobe() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-[2.25rem] p-6 border border-slate-100 premium-shadow"
           >
-            <div className="overflow-hidden rounded-[2rem] mb-5 h-52 bg-slate-100">
+              <div className="relative overflow-hidden rounded-[2rem] mb-5 h-52 bg-slate-100">
               <img
                 src={item.image_url || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=800'}
                 alt={`${item.category} - ${item.resident_name}`}
                 className="h-full w-full object-cover"
               />
+                <button
+                  type="button"
+                  onClick={() => handleDelete(item.id)}
+                  disabled={deletingId === item.id}
+                  className="absolute top-4 right-4 inline-flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md hover:bg-red-600/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Supprimer le vêtement"
+                >
+                  <Trash2 size={16} />
+                  Supprimer
+                </button>
             </div>
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
@@ -206,15 +217,6 @@ export default function Wardrobe() {
                 <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
                   <Sparkles size={20} />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(item.id)}
-                  disabled={deletingId === item.id}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-3 py-3 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Supprimer le vêtement"
-                >
-                  <Trash2 size={18} />
-                </button>
               </div>
             </div>
 
