@@ -66,28 +66,42 @@ export default function AddClothing() {
 
     setSaving(true);
 
-    const newItem = await addClothingItem(
-      {
-        resident_name: residentName.trim(),
-        item_name: itemName.trim(),
-        category,
-        size,
-        color,
-        type,
-        location: location.trim(),
-        image_url: photoPreview
-      },
-      profile.id
-    );
+    try {
+      const newItem = await addClothingItem(
+        {
+          resident_name: residentName.trim(),
+          item_name: itemName.trim(),
+          category,
+          size,
+          color,
+          type,
+          location: location.trim(),
+          image_url: photoPreview
+        },
+        profile.id
+      );
 
-    setSaving(false);
+      if (!newItem) {
+        setError('Impossible d’ajouter le vêtement. Veuillez réessayer.');
+        return;
+      }
 
-    if (!newItem) {
-      setError('Impossible d’ajouter le vêtement. Veuillez réessayer.');
-      return;
+      setMessage('Le vêtement a bien été ajouté.');
+      setResidentName('');
+      setItemName('');
+      setLocation('');
+      setPhotoFile(null);
+      setPhotoPreview('');
+
+      setTimeout(() => {
+        navigate('/vetements');
+      }, 800);
+    } catch (error: any) {
+      console.error('AddClothing submit error:', error);
+      setError(error?.message ?? 'Impossible d’ajouter le vêtement. Veuillez réessayer.');
+    } finally {
+      setSaving(false);
     }
-
-    setMessage('Le vêtement a bien été ajouté.');
     setResidentName('');
     setItemName('');
     setLocation('');

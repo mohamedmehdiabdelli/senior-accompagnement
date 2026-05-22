@@ -263,8 +263,8 @@ export async function addClothingItem(
     .select()
     .single();
   if (error) {
-    console.error(error);
-    return null;
+    console.error('Supabase clothing insert error:', error);
+    throw error;
   }
   return data as ClothingItem;
 }
