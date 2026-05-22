@@ -21,6 +21,7 @@ export default function Wardrobe() {
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<ClothingItem | null>(null);
   const [selectedResident, setSelectedResident] = useState('Tous les résidents');
   const [selectedCategory, setSelectedCategory] = useState<'Toutes' | ClothingCategory>('Toutes');
   const [selectedSize, setSelectedSize] = useState<'Toutes' | ClothingSize>('Toutes');
@@ -64,10 +65,6 @@ export default function Wardrobe() {
 
   const handleDelete = async (itemId: string) => {
     if (!profile) return;
-
-    const confirmed = window.confirm('Supprimer ce vêtement de l’armoire ?');
-    if (!confirmed) return;
-
     const previousItems = clothingItems;
     setClothingItems(currentItems => currentItems.filter(item => item.id !== itemId));
     setDeletingId(itemId);
@@ -76,9 +73,9 @@ export default function Wardrobe() {
     } catch (error) {
       console.error('Delete clothing item error:', error);
       setClothingItems(previousItems);
-      window.alert('Impossible de supprimer ce vêtement.');
     } finally {
       setDeletingId(null);
+      setItemToDelete(null);
     }
   };
 
@@ -199,7 +196,7 @@ export default function Wardrobe() {
               />
                 <button
                   type="button"
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => setItemToDelete(item)}
                   disabled={deletingId === item.id}
                   className="absolute top-4 right-4 inline-flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md hover:bg-red-600/90 disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Supprimer le vêtement"
@@ -246,6 +243,76 @@ export default function Wardrobe() {
           </motion.div>
         ))}
       </div>
+
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="w-full max-w-xl overflow-hidden rounded-[2.25rem] border border-white/10 bg-white shadow-2xl"
+          >
+            <div className="bg-gradient-to-r from-slate-900 via-stone-900 to-emerald-950 px-8 py-6 text-white">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.2em]">
+                <Trash2 size={14} />
+                Supprimer le vêtement
+              </div>
+              <h3 className="mt-4 text-3xl font-black tracking-tight title-serif">
+                Confirmer la suppression
+              </h3>
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/75">
+                Voulez-vous vraiment supprimer ce vêtement ? Cette action est définitive et le fera disparaître du vestiaire.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-5 p-8 md:flex-row md:items-center">
+              <div className="overflow-hidden rounded-[1.75rem] bg-slate-100 md:w-44 md:flex-shrink-0">
+                <img
+                  src={itemToDelete.image_url || 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=800'}
+                  alt={`${itemToDelete.category} - ${itemToDelete.resident_name}`}
+                  className="h-44 w-full object-cover"
+                />
+              </div>
+
+              <div className="flex-1 space-y-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-emerald-600">{itemToDelete.resident_name}</p>
+                  <h4 className="mt-1 text-2xl font-black text-slate-800 title-serif">{itemToDelete.category}</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">Taille</span>
+                    <span className="font-black text-slate-800">{itemToDelete.size}</span>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-400">Couleur</span>
+                    <span className="font-black text-slate-800">{itemToDelete.color}</span>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500">Emplacement: {itemToDelete.location}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-slate-100 px-8 py-6 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(itemToDelete.id)}
+                disabled={deletingId === itemToDelete.id}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                <Trash2 size={16} />
+                {deletingId === itemToDelete.id ? 'Suppression...' : 'Supprimer définitivement'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {!loading && filteredItems.length === 0 && (
         <div className="bg-white rounded-[2.25rem] p-10 border border-dashed border-slate-200 text-center text-slate-500">
