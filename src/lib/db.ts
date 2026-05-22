@@ -320,7 +320,6 @@ export function getDefaultClothingItems(): ClothingItem[] {
       id: 'cl-1',
       owner_id: 'local',
       resident_name: 'Mme. Fatma Ben Ali',
-      name: 'Chemise en coton',
       category: 'Chemise',
       size: 'L',
       color: 'Blanc',
@@ -332,7 +331,6 @@ export function getDefaultClothingItems(): ClothingItem[] {
       id: 'cl-2',
       owner_id: 'local',
       resident_name: 'Mme. Fatma Ben Ali',
-      name: 'Pyjama chaud',
       category: 'Pyjama',
       size: 'XL',
       color: 'Bleu',
@@ -344,7 +342,6 @@ export function getDefaultClothingItems(): ClothingItem[] {
       id: 'cl-3',
       owner_id: 'local',
       resident_name: 'Mr. Béchir Mezghani',
-      name: 'Veste légère',
       category: 'Veste',
       size: 'M',
       color: 'Gris',
@@ -355,10 +352,10 @@ export function getDefaultClothingItems(): ClothingItem[] {
   ];
 }
 
-function normalizeClothingItem(item: ClothingItem & { item_name?: string }): ClothingItem {
+function normalizeClothingItem(item: ClothingItem & { item_name?: string; name?: string }): ClothingItem {
+  const { item_name: _itemName, name: _name, ...rest } = item;
   return {
-    ...item,
-    name: item.name || item.item_name || ''
+    ...rest
   };
 }
 

@@ -16,7 +16,6 @@ export default function AddClothing() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [residentName, setResidentName] = useState('');
-  const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState<ClothingItem['category']>('Chemise');
   const [size, setSize] = useState<ClothingItem['size']>('M');
   const [color, setColor] = useState<ClothingItem['color']>('Blanc');
@@ -60,7 +59,7 @@ export default function AddClothing() {
       return;
     }
 
-    if (!residentName.trim() || !itemName.trim() || !location.trim() || !photoFile) {
+    if (!residentName.trim() || !location.trim() || !photoFile) {
       setError('Veuillez remplir tous les champs et choisir une photo.');
       return;
     }
@@ -85,7 +84,6 @@ export default function AddClothing() {
       const newItem = await addClothingItem(
         {
           resident_name: residentName.trim(),
-          name: itemName.trim(),
           category,
           size,
           color,
@@ -103,7 +101,6 @@ export default function AddClothing() {
 
       setMessage('Le vêtement a bien été ajouté.');
       setResidentName('');
-      setItemName('');
       setLocation('');
       setPhotoFile(null);
       setPhotoPreview('');
@@ -118,7 +115,6 @@ export default function AddClothing() {
       setSaving(false);
     }
     setResidentName('');
-    setItemName('');
     setLocation('');
     setPhotoFile(null);
     setPhotoPreview('');
@@ -168,16 +164,6 @@ export default function AddClothing() {
               value={residentName}
               onChange={(e) => setResidentName(e.target.value)}
               placeholder="Mme. Fatma Ben Ali"
-              className="w-full px-4 py-4 rounded-3xl border border-slate-200 bg-slate-50 focus:bg-white outline-none transition"
-            />
-          </label>
-
-          <label className="space-y-3">
-            <span className="text-sm font-bold text-slate-700">Nom du vêtement</span>
-            <input
-              value={itemName}
-              onChange={(e) => setItemName(e.target.value)}
-              placeholder="Chemise en coton"
               className="w-full px-4 py-4 rounded-3xl border border-slate-200 bg-slate-50 focus:bg-white outline-none transition"
             />
           </label>
