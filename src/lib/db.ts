@@ -226,7 +226,7 @@ export async function deleteProduct(id: string): Promise<void> {
 
 export async function getClothingItems(ownerId?: string): Promise<ClothingItem[]> {
   if (!isSupabaseConfigured()) {
-    return getDefaultClothingItems();
+    return getLocalClothingItems(ownerId);
   }
   if (!ownerId) return [];
   const { data, error } = await supabase
@@ -239,6 +239,50 @@ export async function getClothingItems(ownerId?: string): Promise<ClothingItem[]
     return [];
   }
   return data as ClothingItem[];
+}
+
+export async function addClothingItem(
+  item: Omit<ClothingItem, 'id' | 'owner_id' | 'created_at'>,
+  ownerId: string
+): Promise<ClothingItem | null> {
+  if (!isSupabaseConfigured()) {
+    const items = getLocalClothingItems(ownerId);
+    const newItem: ClothingItem = {
+      ...item,
+      id: crypto.randomUUID(),
+      owner_id: ownerId,
+      created_at: new Date().toISOString()
+    };
+    saveLocalClothingItems(ownerId, [newItem, ...items]);
+    return newItem;
+  }
+
+  const { data, error } = await supabase
+    .from('clothing_items')
+    .insert({ ...item, owner_id: ownerId })
+    .select()
+    .single();
+  if (error) {
+    console.error(error);
+    return null;
+  }
+  return data as ClothingItem;
+}
+
+function getLocalClothingItems(ownerId?: string): ClothingItem[] {
+  if (!ownerId) return getDefaultClothingItems();
+  const raw = localStorage.getItem(`clothing_items_${ownerId}`);
+  if (!raw) return getDefaultClothingItems();
+  try {
+    return JSON.parse(raw) as ClothingItem[];
+  } catch (error) {
+    console.error('Failed to parse local clothing items', error);
+    return getDefaultClothingItems();
+  }
+}
+
+function saveLocalClothingItems(ownerId: string, items: ClothingItem[]) {
+  localStorage.setItem(`clothing_items_${ownerId}`, JSON.stringify(items));
 }
 
 export function getDefaultClothingItems(): ClothingItem[] {
