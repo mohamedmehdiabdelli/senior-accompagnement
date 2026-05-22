@@ -1,7 +1,7 @@
-import { ShoppingCart, Heart, Search, Check, Phone, Plus, Trash2, X } from "lucide-react";
+import { ShoppingCart, Heart, Check, Phone, Plus, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { getProducts, addProduct, deleteProduct } from "../lib/db";
+import { getProducts, addProduct } from "../lib/db";
 import type { HealthProduct } from "../lib/supabase";
 
 export default function Besoins() {
@@ -39,11 +39,6 @@ export default function Besoins() {
     setForm({ name: '', category: 'Mobilité', price: '', description: '', contact: '', image_url: '' });
     setShowAdd(false);
     setSaving(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    await deleteProduct(id);
-    setProducts(prev => prev.filter(p => p.id !== id));
   };
 
   const addToCart = (id: string) => {
@@ -161,12 +156,6 @@ export default function Besoins() {
                   <div className="absolute top-4 left-4">
                     <span className="bg-white/90 backdrop-blur-sm text-slate-700 px-3 py-1 rounded-full text-xs font-bold">{p.category}</span>
                   </div>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="absolute top-4 right-4 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
