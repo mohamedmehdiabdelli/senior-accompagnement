@@ -5,6 +5,10 @@ const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+export function isSupabaseConfigured() {
+  return !!supabaseUrl && !!supabaseAnonKey;
+}
+
 // Guard: createClient throws if either value is empty, which crashes the
 // entire JS bundle and produces a blank page. Only create the real client
 // when both values are present; otherwise return a no-op proxy so the app

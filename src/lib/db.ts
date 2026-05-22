@@ -269,6 +269,35 @@ export async function addClothingItem(
   return data as ClothingItem;
 }
 
+export async function uploadClothingImage(file: File, ownerId: string): Promise<string> {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase storage is not configured.');
+  }
+
+  const bucket = 'clothing-images';
+  const filePath = `${ownerId}/${crypto.randomUUID()}-${file.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(bucket)
+    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+  if (uploadError) {
+    console.error('Supabase storage upload error:', uploadError);
+    throw uploadError;
+  }
+
+  const urlResponse = supabase.storage
+    .from(bucket)
+    .getPublicUrl(filePath);
+
+  if (!urlResponse.data?.publicUrl) {
+    console.error('Supabase storage public URL error: missing publicUrl');
+    throw new Error('Unable to retrieve public image URL.');
+  }
+
+  return urlResponse.data.publicUrl;
+}
+
 function getLocalClothingItems(ownerId?: string): ClothingItem[] {
   if (!ownerId) return getDefaultClothingItems();
   const raw = localStorage.getItem(`clothing_items_${ownerId}`);

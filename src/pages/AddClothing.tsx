@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Camera, ArrowLeft, Upload, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { addClothingItem } from '../lib/db';
+import { addClothingItem, uploadClothingImage } from '../lib/db';
+import { isSupabaseConfigured } from '../lib/supabase';
 import type { ClothingItem } from '../lib/supabase';
 
 const categories: ClothingItem['category'][] = ['Chemise', 'Pantalon', 'Robe', 'Pyjama', 'Veste', 'T-shirt'];
@@ -59,12 +60,26 @@ export default function AddClothing() {
       return;
     }
 
-    if (!residentName.trim() || !itemName.trim() || !location.trim() || !photoPreview) {
+    if (!residentName.trim() || !itemName.trim() || !location.trim() || !photoFile) {
       setError('Veuillez remplir tous les champs et choisir une photo.');
       return;
     }
 
     setSaving(true);
+
+    let imageUrl = photoPreview;
+    if (photoFile && isSupabaseConfigured()) {
+      try {
+        imageUrl = await uploadClothingImage(photoFile, profile.id);
+      } catch (uploadError) {
+        console.warn('Image upload failed, saving inline preview instead:', uploadError);
+        if (!photoPreview) {
+          setError('Impossible de charger l’image. Veuillez réessayer.');
+          return;
+        }
+        imageUrl = photoPreview;
+      }
+    }
 
     try {
       const newItem = await addClothingItem(
@@ -76,7 +91,7 @@ export default function AddClothing() {
           color,
           type,
           location: location.trim(),
-          image_url: photoPreview
+          image_url: imageUrl
         },
         profile.id
       );
