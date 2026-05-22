@@ -47,7 +47,9 @@ function AppShell() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <img src={platformLogo} alt="Tamani" className="w-20 h-20 rounded-3xl shadow-2xl animate-pulse" />
+          <div className="w-20 h-20 rounded-full overflow-hidden shadow-2xl animate-pulse bg-transparent">
+            <img src={platformLogo} alt="Tamani" className="w-full h-full object-cover" />
+          </div>
           <span className="text-white/70 text-sm font-medium tracking-wide">Tamani</span>
         </div>
       </div>

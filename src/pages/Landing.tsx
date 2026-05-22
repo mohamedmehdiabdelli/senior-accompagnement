@@ -18,7 +18,9 @@ export default function Landing({ onSignIn, onSignUp }: LandingProps) {
       {/* Top bar */}
       <header className="relative z-10 px-6 md:px-12 py-6 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <img src={platformLogo} alt="Tamani" className="w-12 h-12 rounded-2xl shadow-lg" />
+          <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg bg-transparent">
+            <img src={platformLogo} alt="Tamani" className="w-full h-full object-cover" />
+          </div>
           <span className="text-2xl font-bold tracking-tight title-serif">Tamani</span>
         </div>
         <div className="flex gap-3">

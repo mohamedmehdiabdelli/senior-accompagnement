@@ -108,8 +108,8 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
           <div className="p-8 md:p-10 space-y-6">
             {/* Header */}
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 mb-2">
-                <img src={platformLogo} alt="Tamani" className="w-12 h-12" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full overflow-hidden mb-2 bg-transparent shadow-md">
+                <img src={platformLogo} alt="Tamani" className="w-full h-full object-cover" />
               </div>
               <h2 className="text-3xl font-bold text-slate-900 title-serif">
                 {mode === 'signin' ? 'Bon retour !' : 'Créer votre compte'}
