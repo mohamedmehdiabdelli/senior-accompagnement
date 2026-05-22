@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Filter, Shirt, Palette, Ruler, Sparkles, RefreshCcw, Users, Tag, PlusCircle } from 'lucide-react';
+import { Search, Filter, Shirt, Palette, Ruler, Sparkles, RefreshCcw, Users, Tag, PlusCircle, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getClothingItems } from '../lib/db';
+import { deleteClothingItem, getClothingItems } from '../lib/db';
 import type { ClothingItem } from '../lib/supabase';
 
 type ClothingCategory = ClothingItem['category'];
@@ -20,6 +20,7 @@ export default function Wardrobe() {
   const { profile } = useAuth();
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedResident, setSelectedResident] = useState('Tous les résidents');
   const [selectedCategory, setSelectedCategory] = useState<'Toutes' | ClothingCategory>('Toutes');
   const [selectedSize, setSelectedSize] = useState<'Toutes' | ClothingSize>('Toutes');
@@ -59,6 +60,25 @@ export default function Wardrobe() {
     setSelectedColor('Toutes');
     setSelectedType('Tous');
     setQuery('');
+  };
+
+  const handleDelete = async (itemId: string) => {
+    if (!profile) return;
+
+    const confirmed = window.confirm('Supprimer ce vêtement de l’armoire ?');
+    if (!confirmed) return;
+
+    setDeletingId(itemId);
+    try {
+      await deleteClothingItem(itemId, profile.id);
+      const items = await getClothingItems(profile.id);
+      setClothingItems(items);
+    } catch (error) {
+      console.error('Delete clothing item error:', error);
+      window.alert('Impossible de supprimer ce vêtement.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -182,8 +202,19 @@ export default function Wardrobe() {
                 <p className="text-xs font-black uppercase tracking-wider text-emerald-600 mb-2">{item.resident_name}</p>
                 <h2 className="text-2xl font-black text-slate-800 title-serif">{item.category}</h2>
               </div>
-              <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
-                <Sparkles size={20} />
+              <div className="flex items-center gap-2">
+                <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
+                  <Sparkles size={20} />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(item.id)}
+                  disabled={deletingId === item.id}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-3 py-3 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Supprimer le vêtement"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
             </div>
 

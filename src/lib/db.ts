@@ -269,6 +269,25 @@ export async function addClothingItem(
   return data as ClothingItem;
 }
 
+export async function deleteClothingItem(itemId: string, ownerId: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    const items = getLocalClothingItems(ownerId);
+    saveLocalClothingItems(ownerId, items.filter(item => item.id !== itemId));
+    return;
+  }
+
+  const { error } = await supabase
+    .from('clothing_items')
+    .delete()
+    .eq('id', itemId)
+    .eq('owner_id', ownerId);
+
+  if (error) {
+    console.error('Supabase clothing delete error:', error);
+    throw error;
+  }
+}
+
 export async function uploadClothingImage(file: File, ownerId: string): Promise<string> {
   if (!isSupabaseConfigured()) {
     throw new Error('Supabase storage is not configured.');
