@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Camera, ArrowLeft, Upload, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { addClothingItem } from '../lib/db';
+import { addClothingItem, uploadClothingImage } from '../lib/db';
+import { isSupabaseConfigured } from '../lib/supabase';
 import type { ClothingItem } from '../lib/supabase';
 
 const categories: ClothingItem['category'][] = ['Chemise', 'Pantalon', 'Robe', 'Pyjama', 'Veste', 'T-shirt'];
@@ -11,11 +12,11 @@ const sizes: ClothingItem['size'][] = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const colors: ClothingItem['color'][] = ['Blanc', 'Bleu', 'Gris', 'Beige', 'Noir', 'Rose'];
 const types: ClothingItem['type'][] = ['Jour', 'Nuit', 'Hiver', 'Été', 'Sortie'];
 
-export default function AddClothing() {
+export default function AddClothing(){
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [residentName, setResidentName] = useState('');
-  const [category, setCategory] = useState<ClothingItem['category']>('Chemise');
+  const [category, setCategory] = useState<ClothingItem['category']>('Chemise') ;
   const [size, setSize] = useState<ClothingItem['size']>('M');
   const [color, setColor] = useState<ClothingItem['color']>('Blanc');
   const [type, setType] = useState<ClothingItem['type']>('Jour');
@@ -25,7 +26,6 @@ export default function AddClothing() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
     if (!photoFile) {
@@ -49,10 +49,9 @@ export default function AddClothing() {
     setPhotoFile(file);
     setError(null);
     setMessage(null);
-    setToastVisible(false);
   };
 
-  const registerClothingImage = async (file: File) => {
+  const registerClothingImage = async (file: File, residentName: string) => {
     const endpoint = import.meta.env.VITE_HF_API_REGISTER_URL;
     const token = import.meta.env.VITE_HF_API_TOKEN;
 
@@ -62,6 +61,7 @@ export default function AddClothing() {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('resident_name', residentName);
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -84,40 +84,6 @@ export default function AddClothing() {
     return response.text();
   };
 
-  const normalizeRegistrationResult = (result: unknown) => {
-    if (typeof result === 'string') {
-      const trimmed = result.trim();
-      return trimmed ? { raw: trimmed } : {};
-    }
-
-    if (!result || typeof result !== 'object') {
-      return {};
-    }
-
-    return result as Record<string, unknown>;
-  };
-
-  const extractImageUrl = (result: Record<string, unknown>, fallback: string) => {
-    const candidates = [
-      result.image_url,
-      result.imageUrl,
-      result.url,
-      result.path,
-      result.registered_image_url,
-      result.registeredImageUrl,
-      result.output,
-      result.result
-    ];
-
-    for (const candidate of candidates) {
-      if (typeof candidate === 'string' && candidate.trim()) {
-        return candidate;
-      }
-    }
-
-    return fallback;
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -136,14 +102,26 @@ export default function AddClothing() {
     try {
       setIsLoading(true);
 
-      const registrationResult = normalizeRegistrationResult(await registerClothingImage(photoFile));
-      const aiMetadata = {
-        source: 'hugging_face',
-        endpoint: import.meta.env.VITE_HF_API_REGISTER_URL || '',
-        registered_at: new Date().toISOString(),
-        ...registrationResult
-      };
-      const imageUrl = extractImageUrl(registrationResult, photoPreview);
+      const registrationResult = await registerClothingImage(photoFile, residentName.trim());
+      let imageUrl = photoPreview;
+
+      if (typeof registrationResult === 'string' && registrationResult.trim()) {
+        imageUrl = registrationResult;
+      } else if (registrationResult && typeof registrationResult === 'object') {
+        const candidate =
+          (registrationResult as Record<string, unknown>).image_url ??
+          (registrationResult as Record<string, unknown>).imageUrl ??
+          (registrationResult as Record<string, unknown>).url ??
+          (registrationResult as Record<string, unknown>).path;
+
+        if (typeof candidate === 'string' && candidate.trim()) {
+          imageUrl = candidate;
+        }
+      }
+
+      if (!imageUrl) {
+        imageUrl = photoPreview;
+      }
 
       const newItem = await addClothingItem(
         {
@@ -153,8 +131,7 @@ export default function AddClothing() {
           color,
           type,
           location: location.trim(),
-          image_url: imageUrl,
-          ai_metadata: aiMetadata
+          image_url: imageUrl
         },
         profile.id
       );
@@ -165,7 +142,6 @@ export default function AddClothing() {
       }
 
       setMessage('Le vêtement a bien été ajouté.');
-      setToastVisible(true);
       setResidentName('');
       setLocation('');
       setPhotoFile(null);
@@ -213,22 +189,6 @@ export default function AddClothing() {
         <div className="absolute -bottom-24 -right-12 w-96 h-96 bg-emerald-400 opacity-20 rounded-full blur-[90px]" />
         <div className="absolute -top-20 -left-16 w-64 h-64 bg-amber-300 opacity-10 rounded-full blur-[80px]" />
       </motion.div>
-
-      {toastVisible && message && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-900 shadow-sm"
-        >
-          <div className="flex items-center gap-3">
-            <CheckCircle2 size={18} className="shrink-0" />
-            <div>
-              <p className="font-semibold">Vêtement enregistré</p>
-              <p className="text-sm text-emerald-800">{message}</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-xl border border-slate-100">
         <div className="grid gap-6 lg:grid-cols-2">
@@ -303,7 +263,7 @@ export default function AddClothing() {
           </div>
         )}
 
-        {message && !toastVisible && (
+        {message && (
           <div className="mt-6 rounded-3xl bg-emerald-50 border border-emerald-200 px-5 py-4 text-sm text-emerald-800 flex items-center gap-2">
             <CheckCircle2 size={18} />
             {message}
