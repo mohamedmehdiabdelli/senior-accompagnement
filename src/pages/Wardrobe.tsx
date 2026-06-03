@@ -132,6 +132,7 @@ export default function Wardrobe() {
     }
 
     const candidate =
+      scanResult.predicted_owner ??
       scanResult.resident_name ??
       scanResult.matched_resident_name ??
       scanResult.match ??
@@ -272,7 +273,7 @@ export default function Wardrobe() {
                           ? `Le vêtement semble correspondre à ${getMatchedResidentName()}.`
                           : 'L’API a retourné une correspondance.'}
                       </p>
-                      {typeof scanResult !== 'string' && (
+                      {typeof scanResult !== 'string' && !getMatchedResidentName() && (
                         <pre className="max-h-56 overflow-auto rounded-2xl bg-white/70 p-4 text-xs text-slate-700">
                           {JSON.stringify(scanResult, null, 2)}
                         </pre>
