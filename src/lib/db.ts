@@ -344,7 +344,8 @@ export function getDefaultClothingItems(): ClothingItem[] {
       color: 'Blanc',
       type: 'Jour',
       image_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800',
-      location: 'Armoire A - étagère 2'
+      location: 'Armoire A - étagère 2',
+      ai_metadata: {}
     },
     {
       id: 'cl-2',
@@ -355,7 +356,8 @@ export function getDefaultClothingItems(): ClothingItem[] {
       color: 'Bleu',
       type: 'Nuit',
       image_url: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=800',
-      location: 'Armoire A - tiroir 1'
+      location: 'Armoire A - tiroir 1',
+      ai_metadata: {}
     },
     {
       id: 'cl-3',
@@ -366,7 +368,8 @@ export function getDefaultClothingItems(): ClothingItem[] {
       color: 'Gris',
       type: 'Sortie',
       image_url: 'https://images.unsplash.com/photo-1520975929533-8c6bbd91e2a1?auto=format&fit=crop&q=80&w=800',
-      location: 'Armoire B - portants'
+      location: 'Armoire B - portants',
+      ai_metadata: {}
     }
   ];
 }

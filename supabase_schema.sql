@@ -115,6 +115,7 @@ create table if not exists clothing_items (
   type text not null check (type in ('Jour','Nuit','Hiver','Été','Sortie')),
   image_url text default '',
   location text not null default '',
+  ai_metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz default now()
 );
 

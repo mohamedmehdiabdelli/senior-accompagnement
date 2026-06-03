@@ -96,6 +96,7 @@ export interface ClothingItem {
   type: 'Jour' | 'Nuit' | 'Hiver' | 'Été' | 'Sortie';
   image_url: string;
   location: string;
+  ai_metadata?: Record<string, unknown>;
   created_at?: string;
 }
 
