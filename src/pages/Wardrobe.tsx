@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, Filter, Shirt, Palette, Ruler, Sparkles, RefreshCcw, Users, Tag, PlusCircle, Trash2 } from 'lucide-react';
+import { Search, Filter, Shirt, Palette, Ruler, Sparkles, RefreshCcw, Users, Tag, PlusCircle, Trash2, Upload, CheckCircle2, ScanSearch } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { deleteClothingItem, getClothingItems } from '../lib/db';
 import type { ClothingItem } from '../lib/supabase';
@@ -28,6 +28,29 @@ export default function Wardrobe() {
   const [selectedColor, setSelectedColor] = useState<'Toutes' | ClothingColor>('Toutes');
   const [selectedType, setSelectedType] = useState<'Tous' | ClothingType>('Tous');
   const [query, setQuery] = useState('');
+  const [showScanPanel, setShowScanPanel] = useState(false);
+  const [scanFile, setScanFile] = useState<File | null>(null);
+  const [scanPreview, setScanPreview] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<Record<string, unknown> | string | null>(null);
+
+  useEffect(() => {
+    if (!scanFile) {
+      setScanPreview('');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setScanPreview(reader.result as string);
+    };
+    reader.readAsDataURL(scanFile);
+
+    return () => {
+      reader.abort();
+    };
+  }, [scanFile]);
 
   useEffect(() => {
     const loadItems = async () => {
@@ -39,6 +62,84 @@ export default function Wardrobe() {
     };
     loadItems();
   }, [profile]);
+
+  const handleScanFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setScanFile(file);
+    setScanError(null);
+    setScanResult(null);
+  };
+
+  const searchLostClothing = async (file: File) => {
+    const endpoint = import.meta.env.VITE_HF_API_SEARCH_URL;
+    const token = import.meta.env.VITE_HF_API_TOKEN;
+
+    if (!endpoint || !token) {
+      throw new Error('La configuration Hugging Face est incomplète.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(errorText || `Erreur Hugging Face: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+
+    return response.text();
+  };
+
+  const handleScanSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setScanError(null);
+    setScanResult(null);
+
+    if (!scanFile) {
+      setScanError('Veuillez sélectionner une image à analyser.');
+      return;
+    }
+
+    try {
+      setScanLoading(true);
+      const result = await searchLostClothing(scanFile);
+      setScanResult(result);
+    } catch (error: any) {
+      console.error('Lost clothing scan error:', error);
+      setScanError(error?.message ?? 'Impossible d’analyser l’image. Veuillez réessayer.');
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const getMatchedResidentName = () => {
+    if (!scanResult) return '';
+
+    if (typeof scanResult === 'string') {
+      return scanResult;
+    }
+
+    const candidate =
+      scanResult.resident_name ??
+      scanResult.matched_resident_name ??
+      scanResult.match ??
+      scanResult.resident ??
+      scanResult.name;
+
+    return typeof candidate === 'string' ? candidate : '';
+  };
 
   const residents = ['Tous les résidents', ...Array.from(new Set(clothingItems.map(item => item.resident_name)))];
 
@@ -106,11 +207,93 @@ export default function Wardrobe() {
               <PlusCircle size={18} />
               Ajouter un vêtement
             </Link>
+            <button
+              type="button"
+              onClick={() => setShowScanPanel((current) => !current)}
+              className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 border border-emerald-300/30 px-5 py-3 text-sm font-semibold uppercase tracking-[0.15em] hover:bg-emerald-500/30 transition"
+            >
+              <ScanSearch size={18} />
+              Scanner un vêtement perdu
+            </button>
           </div>
         </div>
         <div className="absolute -bottom-24 -right-12 w-96 h-96 bg-emerald-400 opacity-20 rounded-full blur-[90px]" />
         <div className="absolute -top-20 -left-16 w-64 h-64 bg-amber-300 opacity-10 rounded-full blur-[80px]" />
       </motion.div>
+
+      {showScanPanel && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-[2.5rem] p-6 md:p-8 premium-shadow border border-emerald-100 mb-8"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
+                <ScanSearch size={14} />
+                Scanner un vêtement perdu
+              </div>
+              <h2 className="mt-4 text-2xl md:text-3xl font-black text-slate-900 title-serif">
+                Téléverser une photo pour trouver le résident correspondant
+              </h2>
+              <p className="mt-3 text-slate-600 leading-relaxed">
+                Choisissez une image d’un vêtement perdu. L’API Hugging Face analysera la photo et renverra la meilleure correspondance possible.
+              </p>
+            </div>
+
+            <form onSubmit={handleScanSubmit} className="w-full max-w-xl space-y-4">
+              <label className="block cursor-pointer rounded-[2rem] border border-dashed border-emerald-200 bg-emerald-50/60 p-6 text-center hover:border-emerald-300 transition">
+                <input type="file" accept="image/*" className="hidden" onChange={handleScanFileChange} />
+                <Upload size={30} className="mx-auto text-emerald-600" />
+                <p className="mt-3 font-semibold text-slate-800">Choisir ou capturer une image</p>
+                <p className="mt-1 text-sm text-slate-500">Le fichier est envoyé tel quel à l’API de recherche.</p>
+              </label>
+
+              {scanPreview && (
+                <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100">
+                  <img src={scanPreview} alt="Prévisualisation du vêtement perdu" className="h-64 w-full object-cover" />
+                </div>
+              )}
+
+              {scanError && (
+                <div className="rounded-3xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+                  {scanError}
+                </div>
+              )}
+
+              {scanResult && !scanError && (
+                <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
+                    <div className="space-y-2">
+                      <p className="font-bold">Correspondance trouvée</p>
+                      <p className="text-sm text-emerald-800">
+                        {getMatchedResidentName()
+                          ? `Le vêtement semble correspondre à ${getMatchedResidentName()}.`
+                          : 'L’API a retourné une correspondance.'}
+                      </p>
+                      {typeof scanResult !== 'string' && (
+                        <pre className="max-h-56 overflow-auto rounded-2xl bg-white/70 p-4 text-xs text-slate-700">
+                          {JSON.stringify(scanResult, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={scanLoading}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-3xl bg-emerald-700 px-8 py-4 font-semibold text-white hover:bg-emerald-800 transition disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                <ScanSearch size={18} />
+                {scanLoading ? 'Analyse en cours...' : 'Lancer la recherche'}
+              </button>
+            </form>
+          </div>
+        </motion.div>
+      )}
 
       <div className="bg-white rounded-[2.5rem] p-6 md:p-8 premium-shadow border border-slate-100 mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
