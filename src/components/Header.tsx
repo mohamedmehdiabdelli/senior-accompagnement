@@ -10,17 +10,14 @@ export default function Header() {
   return (
     <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 py-3 shadow-sm">
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2 sm:gap-3 py-2 pr-2 group">
+        <Link to="/" className="flex items-center py-2 pr-2 group">
           <div className="flex items-center shrink-0 group-hover:scale-110 transition-transform">
             <img
               src="/logo-tameni.png"
               alt="Tameni"
-              className="h-10 md:h-12 w-auto object-contain shrink-0"
+              className="h-14 md:h-16 w-auto object-contain"
             />
           </div>
-          <span className="text-lg sm:text-xl md:text-2xl leading-none font-bold tracking-tight text-gray-800 title-serif whitespace-nowrap">
-            Tameni
-          </span>
         </Link>
 
         <div className="flex items-center gap-2">
