@@ -104,11 +104,11 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
             <X size={20} />
           </button>
 
-          <div className="p-8 md:p-10 space-y-6">
+          <div className="p-8 md:p-10 space-y-6 flex flex-col items-center justify-center">
             {/* Header */}
-            <div className="text-center space-y-2">
-                <div className="inline-flex items-center justify-center h-16 mb-2">
-                  <img src="/logo-tameni.png" alt="Tameni" className="h-16 w-auto object-contain" />
+            <div className="text-center space-y-2 w-full">
+                <div className="flex items-center justify-center w-full shrink-0">
+                  <img src="/logo-tameni.png" alt="Tameni" className="h-16 md:h-20 w-auto object-contain mx-auto mb-4 shrink-0" />
               </div>
               <h2 className="text-3xl font-bold text-slate-900 title-serif">
                 {mode === 'signin' ? 'Bon retour !' : 'Créer votre compte'}
@@ -122,7 +122,7 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
 
             {/* Role selector — sign up only */}
             {mode === 'signup' && (
-              <div className="space-y-3">
+              <div className="space-y-3 w-full">
                 <label className="block text-sm font-semibold text-slate-700">
                   Je suis...
                 </label>
@@ -157,7 +157,7 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 w-full">
               {mode === 'signup' && (
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">Nom complet (optionnel)</label>
@@ -226,7 +226,7 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
               </button>
             </form>
 
-            <div className="text-center text-sm text-slate-500">
+            <div className="text-center text-sm text-slate-500 w-full">
               {mode === 'signin' ? (
                 <>
                   Pas encore de compte ?{' '}

@@ -15,12 +15,12 @@ export default function Landing({ onSignIn, onSignUp }: LandingProps) {
       <div className="absolute top-1/3 left-1/2 w-[400px] h-[400px] bg-purple-600 rounded-full blur-[180px] opacity-20" />
 
       {/* Top bar */}
-      <header className="relative z-10 px-6 md:px-12 py-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="h-12 flex items-center">
-            <img src="/logo-tameni.png" alt="Tameni" className="h-12 w-auto object-contain" />
+      <header className="relative z-10 px-6 md:px-12 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-2 sm:gap-3 py-2">
+          <div className="flex items-center shrink-0">
+            <img src="/logo-tameni.png" alt="Tameni" className="h-10 md:h-12 w-auto object-contain shrink-0" />
           </div>
-          <span className="text-2xl font-bold tracking-tight title-serif">Tameni</span>
+          <span className="text-lg sm:text-xl md:text-2xl leading-none font-bold tracking-tight title-serif whitespace-nowrap">Tameni</span>
         </div>
         <div className="flex gap-3">
           <button
