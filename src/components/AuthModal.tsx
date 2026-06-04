@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Home, Building2, Loader2 } from 'lucide-react';
 import { useAuth, UserRole } from '../context/AuthContext';
-import platformLogo from '../images/Tamani.png';
 
 type Mode = 'signin' | 'signup';
 
@@ -108,8 +107,8 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
           <div className="p-8 md:p-10 space-y-6">
             {/* Header */}
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full overflow-hidden mb-2 bg-transparent shadow-md">
-                <img src={platformLogo} alt="Tamani" className="w-full h-full object-cover" />
+                <div className="inline-flex items-center justify-center h-16 mb-2">
+                  <img src="/logo-tameni.png" alt="Tameni" className="h-16 w-auto object-contain" />
               </div>
               <h2 className="text-3xl font-bold text-slate-900 title-serif">
                 {mode === 'signin' ? 'Bon retour !' : 'Créer votre compte'}
@@ -117,7 +116,7 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
               <p className="text-slate-500">
                 {mode === 'signin'
                   ? 'Connectez-vous pour accéder à votre espace.'
-                  : 'Rejoignez Tamani en quelques secondes.'}
+                    : 'Rejoignez Tameni en quelques secondes.'}
               </p>
             </div>
 

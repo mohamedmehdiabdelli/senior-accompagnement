@@ -1,6 +1,5 @@
 import { motion } from 'motion/react';
 import { Heart, Shield, Users, Clock } from 'lucide-react';
-import platformLogo from '../images/Tamani.png';
 
 interface LandingProps {
   onSignIn: () => void;
@@ -18,10 +17,10 @@ export default function Landing({ onSignIn, onSignUp }: LandingProps) {
       {/* Top bar */}
       <header className="relative z-10 px-6 md:px-12 py-6 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg bg-transparent">
-            <img src={platformLogo} alt="Tamani" className="w-full h-full object-cover" />
+          <div className="h-12 flex items-center">
+            <img src="/logo-tameni.png" alt="Tameni" className="h-12 w-auto object-contain" />
           </div>
-          <span className="text-2xl font-bold tracking-tight title-serif">Tamani</span>
+          <span className="text-2xl font-bold tracking-tight title-serif">Tameni</span>
         </div>
         <div className="flex gap-3">
           <button
@@ -57,7 +56,7 @@ export default function Landing({ onSignIn, onSignUp }: LandingProps) {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-5xl md:text-7xl font-bold tracking-tight title-serif leading-tight"
           >
-            Bienvenue sur <span className="italic text-blue-300">Tamani</span>
+            Bienvenue sur <span className="italic text-blue-300">Tameni</span>
           </motion.h1>
 
           <motion.p
@@ -117,7 +116,7 @@ export default function Landing({ onSignIn, onSignUp }: LandingProps) {
       </main>
 
       <footer className="relative z-10 px-6 md:px-12 py-6 text-center text-sm text-blue-100/50">
-        © {new Date().getFullYear()} Tamani — Tous droits réservés
+        © {new Date().getFullYear()} Tameni — Tous droits réservés
       </footer>
     </div>
   );
