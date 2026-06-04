@@ -15,7 +15,7 @@ export default function Header() {
             <img
               src="/logo-tameni.png"
               alt="Tameni"
-              className="h-14 md:h-16 w-auto object-contain"
+              className="h-16 md:h-20 w-auto object-contain"
             />
           </div>
         </Link>
