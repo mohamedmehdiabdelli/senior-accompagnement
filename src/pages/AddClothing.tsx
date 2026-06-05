@@ -103,24 +103,26 @@ export default function AddClothing(){
       setIsLoading(true);
 
       const registrationResult = await registerClothingImage(photoFile, residentName.trim());
+      console.log('=== Hugging Face registration response ===', registrationResult);
+
       let imageUrl = photoPreview;
 
       if (typeof registrationResult === 'string' && registrationResult.trim()) {
-        imageUrl = registrationResult;
+        try {
+          const parsed = JSON.parse(registrationResult);
+          if (parsed && typeof parsed === 'object') {
+            imageUrl = parsed.image_url ?? parsed.imageUrl ?? parsed.url ?? parsed.path ?? imageUrl;
+          }
+        } catch {
+          imageUrl = registrationResult;
+        }
       } else if (registrationResult && typeof registrationResult === 'object') {
-        const candidate =
+        imageUrl =
           (registrationResult as Record<string, unknown>).image_url ??
           (registrationResult as Record<string, unknown>).imageUrl ??
           (registrationResult as Record<string, unknown>).url ??
-          (registrationResult as Record<string, unknown>).path;
-
-        if (typeof candidate === 'string' && candidate.trim()) {
-          imageUrl = candidate;
-        }
-      }
-
-      if (!imageUrl) {
-        imageUrl = photoPreview;
+          (registrationResult as Record<string, unknown>).path ??
+          imageUrl;
       }
 
       const newItem = await addClothingItem(
