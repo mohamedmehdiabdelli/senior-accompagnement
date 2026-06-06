@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { addClothingItem, uploadClothingImage } from '../lib/db';
 import { isSupabaseConfigured } from '../lib/supabase';
 import type { ClothingItem } from '../lib/supabase';
+import imageCompression from 'browser-image-compression';
 
 const categories: ClothingItem['category'][] = ['Chemise', 'Pantalon', 'Robe', 'Pyjama', 'Veste', 'T-shirt'];
 const sizes: ClothingItem['size'][] = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -44,9 +45,22 @@ export default function AddClothing(){
     };
   }, [photoFile]);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
-    setPhotoFile(file);
+    if (file) {
+      try {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 0.2,
+          maxWidthOrHeight: 800,
+          useWebWorker: true,
+        });
+        setPhotoFile(compressed);
+      } catch {
+        setPhotoFile(file);
+      }
+    } else {
+      setPhotoFile(null);
+    }
     setError(null);
     setMessage(null);
   };
@@ -102,28 +116,10 @@ export default function AddClothing(){
     try {
       setIsLoading(true);
 
+      const publicUrl = await uploadClothingImage(photoFile, profile.id);
+
       const registrationResult = await registerClothingImage(photoFile, residentName.trim());
       console.log('=== Hugging Face registration response ===', registrationResult);
-
-      let imageUrl = photoPreview;
-
-      if (typeof registrationResult === 'string' && registrationResult.trim()) {
-        try {
-          const parsed = JSON.parse(registrationResult);
-          if (parsed && typeof parsed === 'object') {
-            imageUrl = parsed.image_url ?? parsed.imageUrl ?? parsed.url ?? parsed.path ?? imageUrl;
-          }
-        } catch {
-          imageUrl = registrationResult;
-        }
-      } else if (registrationResult && typeof registrationResult === 'object') {
-        imageUrl =
-          (registrationResult as Record<string, unknown>).image_url ??
-          (registrationResult as Record<string, unknown>).imageUrl ??
-          (registrationResult as Record<string, unknown>).url ??
-          (registrationResult as Record<string, unknown>).path ??
-          imageUrl;
-      }
 
       const newItem = await addClothingItem(
         {
@@ -133,7 +129,7 @@ export default function AddClothing(){
           color,
           type,
           location: location.trim(),
-          image_url: imageUrl
+          image_url: publicUrl
         },
         profile.id
       );
