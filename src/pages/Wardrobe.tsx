@@ -84,7 +84,7 @@ export default function Wardrobe() {
     setScanResult(null);
   };
 
-  const searchLostClothing = async (imageUrl: string) => {
+  const searchLostClothing = async (file: File) => {
     const endpoint = import.meta.env.VITE_HF_API_SEARCH_URL;
     const token = import.meta.env.VITE_HF_API_TOKEN;
 
@@ -92,13 +92,15 @@ export default function Wardrobe() {
       throw new Error('La configuration Hugging Face est incomplète.');
     }
 
+    const formData = new FormData();
+    formData.append('file', file);
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ image_url: imageUrl })
+      body: formData
     });
 
     if (!response.ok) {
@@ -129,7 +131,7 @@ export default function Wardrobe() {
 
       const publicUrl = await uploadClothingImage(scanFile, 'scans');
 
-      const result = await searchLostClothing(publicUrl);
+      const result = await searchLostClothing(scanFile);
       setScanResult(result);
     } catch (error: any) {
       console.error('Lost clothing scan error:', error);
