@@ -2,13 +2,14 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
-export type UserRole = 'elderly' | 'nursing_home';
+export type UserRole = 'super_admin' | 'admin' | 'caregiver' | 'family';
 
 export interface TaminiProfile {
   id: string;
   email: string;
   role: UserRole;
   full_name?: string;
+  facility_id: string | null;
   created_at?: string;
 }
 
@@ -16,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   profile: TaminiProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, role: UserRole, fullName?: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityId?: string | null) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -37,6 +38,7 @@ interface LocalUser {
   password: string; // demo only, plaintext — replace with Supabase in prod
   role: UserRole;
   full_name?: string;
+  facility_id: string | null;
   created_at: string;
 }
 
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: local.email,
             role: local.role,
             full_name: local.full_name,
+            facility_id: local.facility_id,
             created_at: local.created_at
           });
         }
@@ -120,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((data as TaminiProfile | null) ?? null);
   };
 
-  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName) => {
+  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityId) => {
     if (!isSupabaseConfigured()) {
       const users = getLocalUsers();
       if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
@@ -132,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         role,
         full_name: fullName,
+        facility_id: facilityId ?? null,
         created_at: new Date().toISOString()
       };
       saveLocalUsers([...users, newUser]);
@@ -141,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: newUser.email,
         role: newUser.role,
         full_name: newUser.full_name,
+        facility_id: newUser.facility_id,
         created_at: newUser.created_at
       });
       return { error: null };
@@ -152,7 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: {
         data: {
           role,
-          full_name: fullName || null
+          full_name: fullName || null,
+          facility_id: facilityId || null
         }
       }
     });
@@ -163,7 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: data.user.id,
       email,
       role,
-      full_name: fullName || null
+      full_name: fullName || null,
+      facility_id: facilityId || null
     };
 
     const { error: pErr } = await supabase.from('profiles').upsert(profileData, {
@@ -188,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: u.email,
         role: u.role,
         full_name: u.full_name,
+        facility_id: u.facility_id,
         created_at: u.created_at
       });
       return { error: null };

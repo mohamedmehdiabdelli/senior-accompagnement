@@ -9,6 +9,13 @@ export function isSupabaseConfigured() {
   return !!supabaseUrl && !!supabaseAnonKey;
 }
 
+export interface Facility {
+  id: string;
+  name: string;
+  address: string;
+  created_at?: string;
+}
+
 // Guard: createClient throws if either value is empty, which crashes the
 // entire JS bundle and produces a blank page. Only create the real client
 // when both values are present; otherwise return a no-op proxy so the app
@@ -22,22 +29,24 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
 // Types matching our DB schema
 export interface Reminder {
   id: string;
-  user_id: string;
+  user_id: string | null;
   type: 'medicine' | 'meal' | 'appointment' | 'prayer' | 'other';
   title: string;
   time: string;
   description: string;
   active: boolean;
+  facility_id: string;
   created_at?: string;
 }
 
 export interface Senior {
   id: string;
-  caregiver_id: string;
+  caregiver_id: string | null;
   name: string;
   age: number;
   condition: string;
   image_url: string;
+  facility_id: string;
   created_at?: string;
 }
 
@@ -96,6 +105,8 @@ export interface ClothingItem {
   type: 'Jour' | 'Nuit' | 'Hiver' | 'Été' | 'Sortie';
   image_url: string;
   location: string;
+  facility_id: string;
+  senior_id?: string;
   ai_metadata?: Record<string, unknown>;
   created_at?: string;
 }
@@ -103,6 +114,9 @@ export interface ClothingItem {
 export interface UserProfile {
   id: string;
   email: string;
-  is_subscribed: boolean;
-  subscription_date?: string;
+  role: 'super_admin' | 'admin' | 'caregiver' | 'family';
+  full_name?: string;
+  facility_id: string | null;
+  is_subscribed?: boolean;
+  created_at?: string;
 }

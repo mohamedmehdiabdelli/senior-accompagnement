@@ -20,7 +20,7 @@ export async function getReminders(): Promise<Reminder[]> {
   return data as Reminder[];
 }
 
-export async function addReminder(r: Omit<Reminder, 'id' | 'created_at'>): Promise<Reminder | null> {
+export async function addReminder(r: Omit<Reminder, 'id' | 'created_at' | 'facility_id'>, facilityId?: string): Promise<Reminder | null> {
   if (!isSupabaseConfigured()) {
     const reminders = await getReminders();
     const newR = { ...r, id: crypto.randomUUID() };
@@ -28,7 +28,7 @@ export async function addReminder(r: Omit<Reminder, 'id' | 'created_at'>): Promi
     localStorage.setItem('reminders', JSON.stringify(updated));
     return newR;
   }
-  const { data, error } = await supabase.from('reminders').insert(r).select().single();
+  const { data, error } = await supabase.from('reminders').insert({ ...r, facility_id: facilityId }).select().single();
   if (error) { console.error(error); return null; }
   return data as Reminder;
 }
@@ -64,14 +64,14 @@ export async function getSeniors(): Promise<Senior[]> {
   return data as Senior[];
 }
 
-export async function addSenior(s: Omit<Senior, 'id' | 'created_at'>): Promise<Senior | null> {
+export async function addSenior(s: Omit<Senior, 'id' | 'created_at' | 'facility_id'>, facilityId?: string): Promise<Senior | null> {
   if (!isSupabaseConfigured()) {
     const seniors = await getSeniors();
     const newS = { ...s, id: crypto.randomUUID() };
     localStorage.setItem('seniors', JSON.stringify([...seniors, newS]));
     return newS;
   }
-  const { data, error } = await supabase.from('seniors').insert(s).select().single();
+  const { data, error } = await supabase.from('seniors').insert({ ...s, facility_id: facilityId }).select().single();
   if (error) { console.error(error); return null; }
   return data as Senior;
 }
@@ -242,8 +242,9 @@ export async function getClothingItems(ownerId?: string): Promise<ClothingItem[]
 }
 
 export async function addClothingItem(
-  item: Omit<ClothingItem, 'id' | 'owner_id' | 'created_at'>,
-  ownerId: string
+  item: Omit<ClothingItem, 'id' | 'owner_id' | 'created_at' | 'facility_id'>,
+  ownerId: string,
+  facilityId?: string
 ): Promise<ClothingItem | null> {
   if (!isSupabaseConfigured()) {
     const items = getLocalClothingItems(ownerId);
@@ -259,7 +260,7 @@ export async function addClothingItem(
 
   const { data, error } = await supabase
     .from('clothing_items')
-    .insert({ ...item, owner_id: ownerId })
+    .insert({ ...item, owner_id: ownerId, facility_id: facilityId })
     .select()
     .single();
   if (error) {
@@ -427,6 +428,7 @@ function getDefaultProducts(): HealthProduct[] {
 
 export interface Doctor {
   id: string;
+  facility_id: string;
   name: string;
   specialty: string;
   image_url: string;
@@ -462,6 +464,7 @@ function getDefaultDoctors(): Doctor[] {
 
 export interface Psychologist {
   id: string;
+  facility_id: string;
   name: string;
   specialty: string;
   image_url: string;
