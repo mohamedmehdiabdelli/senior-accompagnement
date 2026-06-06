@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Search, Filter, Shirt, Palette, Ruler, Sparkles, RefreshCcw, Users, Tag, PlusCircle, Trash2, Upload, CheckCircle2, ScanSearch } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { deleteClothingItem, getClothingItems } from '../lib/db';
+import { deleteClothingItem, getClothingItems, uploadClothingImage } from '../lib/db';
 import type { ClothingItem } from '../lib/supabase';
+import imageCompression from 'browser-image-compression';
 
 type ClothingCategory = ClothingItem['category'];
 type ClothingSize = ClothingItem['size'];
@@ -63,14 +64,27 @@ export default function Wardrobe() {
     loadItems();
   }, [profile]);
 
-  const handleScanFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleScanFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
-    setScanFile(file);
+    if (file) {
+      try {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 0.2,
+          maxWidthOrHeight: 800,
+          useWebWorker: true,
+        });
+        setScanFile(compressed);
+      } catch {
+        setScanFile(file);
+      }
+    } else {
+      setScanFile(null);
+    }
     setScanError(null);
     setScanResult(null);
   };
 
-  const searchLostClothing = async (file: File) => {
+  const searchLostClothing = async (imageUrl: string) => {
     const endpoint = import.meta.env.VITE_HF_API_SEARCH_URL;
     const token = import.meta.env.VITE_HF_API_TOKEN;
 
@@ -78,15 +92,13 @@ export default function Wardrobe() {
       throw new Error('La configuration Hugging Face est incomplète.');
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
-      body: formData
+      body: JSON.stringify({ image_url: imageUrl })
     });
 
     if (!response.ok) {
@@ -114,7 +126,10 @@ export default function Wardrobe() {
 
     try {
       setScanLoading(true);
-      const result = await searchLostClothing(scanFile);
+
+      const publicUrl = await uploadClothingImage(scanFile, 'scans');
+
+      const result = await searchLostClothing(publicUrl);
       setScanResult(result);
     } catch (error: any) {
       console.error('Lost clothing scan error:', error);
@@ -247,7 +262,7 @@ export default function Wardrobe() {
                 <input type="file" accept="image/*" className="hidden" onChange={handleScanFileChange} />
                 <Upload size={30} className="mx-auto text-emerald-600" />
                 <p className="mt-3 font-semibold text-slate-800">Choisir ou capturer une image</p>
-                <p className="mt-1 text-sm text-slate-500">Le fichier est envoyé tel quel à l’API de recherche.</p>
+                <p className="mt-1 text-sm text-slate-500">L’image est compressée puis analysée par l’API de recherche.</p>
               </label>
 
               {scanPreview && (
