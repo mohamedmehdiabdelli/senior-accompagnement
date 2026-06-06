@@ -110,10 +110,14 @@ export default function Wardrobe() {
 
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
-      return await response.json();
+      const data = await response.json();
+      console.log("Scanner Result:", data);
+      return data;
     }
 
-    return response.text();
+    const text = await response.text();
+    console.log("Scanner Result:", text);
+    return text;
   };
 
   const handleScanSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
