@@ -167,16 +167,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const userId = data.user.id;
 
-    // Initial profile upsert (without facility_id — may be updated below)
-    const { error: pErr } = await supabase.from('profiles').upsert({
-      id: userId,
-      email,
-      role,
-      full_name: fullName || null,
-      facility_id: null
-    }, { onConflict: 'id' });
-    if (pErr) return { error: 'Compte créé mais profil non enregistré : ' + pErr.message, userId };
-
     // For super_admin, create the facility and attach it to the profile via a secure RPC
     if (role === 'super_admin' && facilityName) {
       const { data: facilityId, error: rpcError } = await supabase.rpc('create_tenant', {
