@@ -193,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userId = data.user.id;
 
       if (role === 'super_admin' && facilityName) {
-        const { data: facilityId, error: rpcError } = await supabase.rpc('create_tenant', {
+        const { error: rpcError } = await supabase.rpc('create_tenant', {
           facility_name: facilityName
         });
 
