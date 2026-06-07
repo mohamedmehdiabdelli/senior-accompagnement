@@ -17,7 +17,7 @@ interface AuthContextType {
   user: User | null;
   profile: TaminiProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityId?: string | null) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityName?: string) => Promise<{ error: string | null; userId?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -123,19 +123,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((data as TaminiProfile | null) ?? null);
   };
 
-  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityId) => {
+  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityName) => {
     if (!isSupabaseConfigured()) {
       const users = getLocalUsers();
       if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
         return { error: 'Un compte existe déjà avec cet email.' };
       }
+      const id = crypto.randomUUID();
       const newUser: LocalUser = {
-        id: crypto.randomUUID(),
+        id,
         email,
         password,
         role,
         full_name: fullName,
-        facility_id: facilityId ?? null,
+        facility_id: null,
         created_at: new Date().toISOString()
       };
       saveLocalUsers([...users, newUser]);
@@ -148,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         facility_id: newUser.facility_id,
         created_at: newUser.created_at
       });
-      return { error: null };
+      return { error: null, userId: id };
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -157,29 +158,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: {
         data: {
           role,
-          full_name: fullName || null,
-          facility_id: facilityId || null
+          full_name: fullName || null
         }
       }
     });
     if (error) return { error: error.message };
     if (!data.user) return { error: 'Erreur inconnue lors de la création du compte.' };
 
-    const profileData = {
-      id: data.user.id,
+    const userId = data.user.id;
+
+    // Initial profile upsert (without facility_id — may be updated below)
+    const { error: pErr } = await supabase.from('profiles').upsert({
+      id: userId,
       email,
       role,
       full_name: fullName || null,
-      facility_id: facilityId || null
-    };
+      facility_id: null
+    }, { onConflict: 'id' });
+    if (pErr) return { error: 'Compte créé mais profil non enregistré : ' + pErr.message, userId };
 
-    const { error: pErr } = await supabase.from('profiles').upsert(profileData, {
-      onConflict: 'id'
-    });
-    if (pErr) return { error: 'Compte créé mais profil non enregistré : ' + pErr.message };
+    // For super_admin, create the facility and attach it to the profile
+    let facilityId: string | null = null;
+    if (role === 'super_admin' && facilityName) {
+      const { data: facility, error: facErr } = await supabase
+        .from('facilities')
+        .insert({ name: facilityName })
+        .select('id')
+        .single();
 
-    await loadProfile(data.user.id);
-    return { error: null };
+      if (facErr) {
+        return { error: 'Établissement créé mais le rattachement a échoué : ' + facErr.message, userId };
+      }
+      facilityId = facility.id;
+
+      const { error: updErr } = await supabase
+        .from('profiles')
+        .update({ facility_id: facilityId })
+        .eq('id', userId);
+
+      if (updErr) {
+        return { error: 'Établissement créé mais le rattachement a échoué : ' + updErr.message, userId };
+      }
+    }
+
+    await loadProfile(userId);
+    return { error: null, userId };
   };
 
   const signIn: AuthContextType['signIn'] = async (email, password) => {

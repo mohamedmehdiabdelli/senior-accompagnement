@@ -73,7 +73,7 @@ function AppShell() {
   }
 
   // Signed in → full app with role-aware routing
-  const isNursingHome = profile.role === 'nursing_home';
+  const isSuperAdmin = profile.role === 'super_admin';
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] font-sans text-gray-900 overflow-x-hidden">
@@ -86,41 +86,41 @@ function AppShell() {
             {/* Elderly-only routes */}
             <Route
               path="/besoins"
-              element={isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Besoins /></PageWrapper>}
+              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Besoins /></PageWrapper>}
             />
             <Route
               path="/psychique"
-              element={isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Psychique /></PageWrapper>}
+              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Psychique /></PageWrapper>}
             />
             <Route
               path="/telemedicine"
-              element={isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Telemedicine /></PageWrapper>}
+              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Telemedicine /></PageWrapper>}
             />
             <Route
               path="/rappels"
-              element={isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Rappels /></PageWrapper>}
+              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Rappels /></PageWrapper>}
             />
             <Route
               path="/alerte"
-              element={isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Alerte /></PageWrapper>}
+              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Alerte /></PageWrapper>}
             />
             <Route
               path="/loisirs"
-              element={isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Loisirs /></PageWrapper>}
+              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Loisirs /></PageWrapper>}
             />
 
             {/* Nursing-home-only route */}
             <Route
               path="/caregiver"
-              element={!isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Caregiver /></PageWrapper>}
+              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Caregiver /></PageWrapper>}
             />
             <Route
               path="/vetements"
-              element={!isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><Wardrobe /></PageWrapper>}
+              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Wardrobe /></PageWrapper>}
             />
             <Route
               path="/vetements/ajouter"
-              element={!isNursingHome ? <Navigate to="/" replace /> : <PageWrapper><AddClothing /></PageWrapper>}
+              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><AddClothing /></PageWrapper>}
             />
 
             <Route path="*" element={<Navigate to="/" replace />} />
