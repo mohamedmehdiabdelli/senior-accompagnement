@@ -177,27 +177,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, { onConflict: 'id' });
     if (pErr) return { error: 'Compte créé mais profil non enregistré : ' + pErr.message, userId };
 
-    // For super_admin, create the facility and attach it to the profile
-    let facilityId: string | null = null;
+    // For super_admin, create the facility and attach it to the profile via a secure RPC
     if (role === 'super_admin' && facilityName) {
-      const { data: facility, error: facErr } = await supabase
-        .from('facilities')
-        .insert({ name: facilityName })
-        .select('id')
-        .single();
+      const { data: facilityId, error: rpcError } = await supabase.rpc('create_tenant', {
+        facility_name: facilityName
+      });
 
-      if (facErr) {
-        return { error: 'Établissement créé mais le rattachement a échoué : ' + facErr.message, userId };
-      }
-      facilityId = facility.id;
-
-      const { error: updErr } = await supabase
-        .from('profiles')
-        .update({ facility_id: facilityId })
-        .eq('id', userId);
-
-      if (updErr) {
-        return { error: 'Établissement créé mais le rattachement a échoué : ' + updErr.message, userId };
+      if (rpcError) {
+        return { error: 'Erreur lors de la création de l\'établissement : ' + rpcError.message, userId };
       }
     }
 
