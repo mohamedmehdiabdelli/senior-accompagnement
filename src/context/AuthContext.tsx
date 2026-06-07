@@ -27,15 +27,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const isSupabaseConfigured = () =>
   !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// ── Local-storage fallback (used when Supabase isn't configured yet) ──
-// This lets the app run end-to-end even before you wire up Supabase.
 const LOCAL_USERS_KEY = 'tamini_local_users';
 const LOCAL_SESSION_KEY = 'tamini_local_session';
 
 interface LocalUser {
   id: string;
   email: string;
-  password: string; // demo only, plaintext — replace with Supabase in prod
+  password: string;
   role: UserRole;
   full_name?: string;
   facility_id: string | null;
@@ -43,19 +41,29 @@ interface LocalUser {
 }
 
 function getLocalUsers(): LocalUser[] {
-  const raw = localStorage.getItem(LOCAL_USERS_KEY);
-  return raw ? JSON.parse(raw) : [];
+  try {
+    const raw = localStorage.getItem(LOCAL_USERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 function saveLocalUsers(users: LocalUser[]) {
-  localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
+  try { localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users)); } catch {}
 }
 function getLocalSession(): LocalUser | null {
-  const raw = localStorage.getItem(LOCAL_SESSION_KEY);
-  return raw ? JSON.parse(raw) : null;
+  try {
+    const raw = localStorage.getItem(LOCAL_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 function setLocalSession(u: LocalUser | null) {
-  if (u) localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(u));
-  else localStorage.removeItem(LOCAL_SESSION_KEY);
+  try {
+    if (u) localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(u));
+    else localStorage.removeItem(LOCAL_SESSION_KEY);
+  } catch {}
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -63,35 +71,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<TaminiProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initial session check
+  const loadProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) {
+        console.error('Profile load error:', error);
+        setProfile(null);
+        return;
+      }
+      if (!data) {
+        console.warn(`No profile found for user ${userId}`);
+        setProfile(null);
+        return;
+      }
+      setProfile(data as TaminiProfile);
+    } catch (err) {
+      console.error('Unexpected error loading profile:', err);
+      setProfile(null);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
     const init = async () => {
-      if (!isSupabaseConfigured()) {
-        const local = getLocalSession();
-        if (local && mounted) {
-          setProfile({
-            id: local.id,
-            email: local.email,
-            role: local.role,
-            full_name: local.full_name,
-            facility_id: local.facility_id,
-            created_at: local.created_at
-          });
+      try {
+        if (!isSupabaseConfigured()) {
+          const local = getLocalSession();
+          if (local && mounted) {
+            setProfile({
+              id: local.id,
+              email: local.email,
+              role: local.role,
+              full_name: local.full_name,
+              facility_id: local.facility_id,
+              created_at: local.created_at
+            });
+          }
+          return;
         }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user && mounted) {
+          setUser(session.user);
+          await loadProfile(session.user.id);
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+      } finally {
         if (mounted) setLoading(false);
-        return;
       }
+    };
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user && mounted) {
-        setUser(session.user);
-        await loadProfile(session.user.id);
-      }
-      if (mounted) setLoading(false);
+    init();
 
-      const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
         if (!mounted) return;
         if (session?.user) {
           setUser(session.user);
@@ -100,121 +139,124 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setProfile(null);
         }
-      });
-
-      return () => sub.subscription.unsubscribe();
-    };
-
-    init();
-    return () => { mounted = false; };
-  }, []);
-
-  const loadProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-    if (error) {
-      console.error('Profile load error:', error);
-      setProfile(null);
-      return;
-    }
-    setProfile((data as TaminiProfile | null) ?? null);
-  };
-
-  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityName) => {
-    if (!isSupabaseConfigured()) {
-      const users = getLocalUsers();
-      if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-        return { error: 'Un compte existe déjà avec cet email.' };
-      }
-      const id = crypto.randomUUID();
-      const newUser: LocalUser = {
-        id,
-        email,
-        password,
-        role,
-        full_name: fullName,
-        facility_id: null,
-        created_at: new Date().toISOString()
-      };
-      saveLocalUsers([...users, newUser]);
-      setLocalSession(newUser);
-      setProfile({
-        id: newUser.id,
-        email: newUser.email,
-        role: newUser.role,
-        full_name: newUser.full_name,
-        facility_id: newUser.facility_id,
-        created_at: newUser.created_at
-      });
-      return { error: null, userId: id };
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          role,
-          full_name: fullName || null
-        }
+      } catch (err) {
+        console.error('Auth state change error:', err);
       }
     });
-    if (error) return { error: error.message };
-    if (!data.user) return { error: 'Erreur inconnue lors de la création du compte.' };
 
-    const userId = data.user.id;
+    return () => {
+      mounted = false;
+      sub?.subscription.unsubscribe();
+    };
+  }, []);
 
-    // For super_admin, create the facility and attach it to the profile via a secure RPC
-    if (role === 'super_admin' && facilityName) {
-      const { data: facilityId, error: rpcError } = await supabase.rpc('create_tenant', {
-        facility_name: facilityName
-      });
-
-      if (rpcError) {
-        return { error: 'Erreur lors de la création de l\'établissement : ' + rpcError.message, userId };
+  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityName) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        const users = getLocalUsers();
+        if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+          return { error: 'Un compte existe déjà avec cet email.' };
+        }
+        const id = crypto.randomUUID();
+        const newUser: LocalUser = {
+          id, email, password, role,
+          full_name: fullName,
+          facility_id: null,
+          created_at: new Date().toISOString()
+        };
+        saveLocalUsers([...users, newUser]);
+        setLocalSession(newUser);
+        setProfile({
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          full_name: newUser.full_name,
+          facility_id: newUser.facility_id,
+          created_at: newUser.created_at
+        });
+        return { error: null, userId: id };
       }
-    }
 
-    await loadProfile(userId);
-    return { error: null, userId };
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role,
+            full_name: fullName || null
+          }
+        }
+      });
+      if (error) return { error: error.message };
+      if (!data.user) return { error: 'Erreur inconnue lors de la création du compte.' };
+
+      const userId = data.user.id;
+
+      if (role === 'super_admin' && facilityName) {
+        const { data: facilityId, error: rpcError } = await supabase.rpc('create_tenant', {
+          facility_name: facilityName
+        });
+
+        if (rpcError) {
+          return { error: 'Erreur lors de la création de l\'établissement : ' + rpcError.message, userId };
+        }
+      }
+
+      await loadProfile(userId);
+      return { error: null, userId };
+    } catch (err) {
+      console.error('Sign up error:', err);
+      return { error: 'Une erreur inattendue est survenue lors de l\'inscription.' };
+    }
   };
 
   const signIn: AuthContextType['signIn'] = async (email, password) => {
-    if (!isSupabaseConfigured()) {
-      const users = getLocalUsers();
-      const u = users.find(
-        x => x.email.toLowerCase() === email.toLowerCase() && x.password === password
-      );
-      if (!u) return { error: 'Email ou mot de passe incorrect.' };
-      setLocalSession(u);
-      setProfile({
-        id: u.id,
-        email: u.email,
-        role: u.role,
-        full_name: u.full_name,
-        facility_id: u.facility_id,
-        created_at: u.created_at
-      });
-      return { error: null };
-    }
+    try {
+      if (!isSupabaseConfigured()) {
+        const users = getLocalUsers();
+        const u = users.find(
+          x => x.email.toLowerCase() === email.toLowerCase() && x.password === password
+        );
+        if (!u) return { error: 'Email ou mot de passe incorrect.' };
+        setLocalSession(u);
+        setProfile({
+          id: u.id,
+          email: u.email,
+          role: u.role,
+          full_name: u.full_name,
+          facility_id: u.facility_id,
+          created_at: u.created_at
+        });
+        return { error: null };
+      }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return { error: null };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message };
+
+      if (data.user) {
+        await loadProfile(data.user.id);
+      }
+      return { error: null };
+    } catch (err) {
+      console.error('Sign in error:', err);
+      return { error: 'Une erreur inattendue est survenue lors de la connexion.' };
+    }
   };
 
   const signOut = async () => {
-    if (!isSupabaseConfigured()) {
-      setLocalSession(null);
+    try {
+      if (!isSupabaseConfigured()) {
+        setLocalSession(null);
+        setProfile(null);
+        return;
+      }
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    } finally {
+      setUser(null);
       setProfile(null);
-      return;
     }
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
   };
 
   return (
