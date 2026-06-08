@@ -96,7 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    console.log('[Auth] 1. AuthContext mounted');
     let mounted = true;
+
+    const forceUnlock = setTimeout(() => {
+      console.log('[Auth] TIMEOUT FIRED — forcing loading=false');
+      setLoading(false);
+    }, 3000);
 
     if (!isSupabaseConfigured()) {
       const local = getLocalSession();
@@ -111,21 +117,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
       setLoading(false);
+      clearTimeout(forceUnlock);
       return;
     }
 
     const initializeAuth = async () => {
+      console.log('[Auth] 2. Calling getSession...');
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('[Auth] 3. Session response received', session ? 'session present' : 'no session');
         if (!mounted) return;
         if (session?.user) {
           setUser(session.user);
           await loadProfile(session.user.id);
         }
       } catch (err) {
-        console.error('Auth init error:', err);
+        console.error('[Auth] getSession error:', err);
       } finally {
-        if (mounted) setLoading(false);
+        console.log('[Auth] 4. Finally block executed');
+        clearTimeout(forceUnlock);
+        setLoading(false);
       }
     };
 
@@ -143,12 +154,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
         }
       } catch (err) {
-        console.error('Auth state change error:', err);
+        console.error('[Auth] onAuthStateChange error:', err);
       }
     });
 
     return () => {
+      console.log('[Auth] Cleanup — mounted set to false');
       mounted = false;
+      clearTimeout(forceUnlock);
       sub?.subscription.unsubscribe();
     };
   }, []);
