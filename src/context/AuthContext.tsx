@@ -32,7 +32,7 @@ interface AuthContextType {
   user: User | null;
   profile: TaminiProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null; userId?: string }>;
+  signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityName?: string) => Promise<{ error: string | null; userId?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   inviteStaff: (email: string, role: UserRole, facilityId: string) => Promise<{ error: string | null }>;
@@ -223,23 +223,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signUp: AuthContextType['signUp'] = async (email, password, fullName) => {
+  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityName) => {
     try {
+      const cleanEmail = email.toLowerCase().trim();
+
+      // --- 1. LOCAL OFFLINE MODE FALLBACK ---
       if (!isSupabaseConfigured()) {
         const users = getLocalUsers();
-        if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
           return { error: 'Un compte existe déjà avec cet email.' };
         }
-        const allowed = getLocalAllowedStaff();
-        const match = allowed.find(a => a.email.toLowerCase() === email.toLowerCase());
-        const resolvedRole = match?.role ?? 'family';
-        const resolvedFacilityId = match?.facility_id ?? null;
         const id = crypto.randomUUID();
         const newUser: LocalUser = {
-          id, email, password,
-          role: resolvedRole,
+          id, email: cleanEmail, password, role,
           full_name: fullName,
-          facility_id: resolvedFacilityId,
+          facility_id: null,
           created_at: new Date().toISOString()
         };
         saveLocalUsers([...users, newUser]);
@@ -255,40 +253,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null, userId: id };
       }
 
+      // --- 2. ONLINE SUPABASE MODE ---
+      let assignedRole = role;
+      let assignedFacilityId: string | null = null;
+
+      // Check if user is an invited staff member
       const { data: invite, error: inviteError } = await supabase
         .from('allowed_staff')
         .select('*')
-        .eq('email', email.toLowerCase())
+        .eq('email', cleanEmail)
         .maybeSingle();
 
-      if (inviteError) {
-        return { error: 'Erreur lors de la vérification de votre invitation. Veuillez réessayer.' };
+      if (invite) {
+        assignedRole = invite.role;
+        assignedFacilityId = invite.facility_id;
+      } else if (!facilityName) {
+        // Not an invited staff member and not trying to create a new retirement home
+        return { error: "Cette adresse e-mail n'est pas autorisée. Veuillez contacter votre administrateur." };
       }
 
-      if (!invite) {
-        return { error: 'Cette adresse e-mail n\'est pas autorisée. Veuillez contacter votre administrateur.' };
-      }
-
+      // Perform the actual signup with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           data: {
-            role: invite.role,
-            facility_id: invite.facility_id,
+            role: assignedRole,
+            facility_id: assignedFacilityId,
             full_name: fullName || null
           }
         }
       });
+
       if (error) return { error: error.message };
       if (!data.user) return { error: 'Erreur inconnue lors de la création du compte.' };
 
       const userId = data.user.id;
+
+      // If this is a brand new Super Admin creating a retirement home, trigger the creation RPC
+      if (assignedRole === 'super_admin' && facilityName) {
+        const { error: rpcError } = await supabase.rpc('create_tenant', {
+          facility_name: facilityName
+        });
+
+        if (rpcError) {
+          return { error: "Erreur lors de la création de l'établissement : " + rpcError.message, userId };
+        }
+      }
+
+      // Reload profile state cleanly
       await loadProfile(userId);
       return { error: null, userId };
     } catch (err) {
       console.error('Sign up error:', err);
-      return { error: 'Une erreur inattendue est survenue lors de l\'inscription.' };
+      return { error: "Une erreur inattendue est survenue lors de l'inscription." };
     }
   };
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, User, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { X, Mail, Lock, User, Building2, Loader2 } from 'lucide-react';
+import { useAuth, UserRole } from '../context/AuthContext';
 
 type Mode = 'signin' | 'signup';
 
@@ -16,6 +16,8 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState<UserRole>('family');
+  const [facilityName, setFacilityName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -32,6 +34,8 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
     setEmail('');
     setPassword('');
     setFullName('');
+    setRole('family');
+    setFacilityName('');
     setError(null);
     setLoading(false);
   };
@@ -56,7 +60,7 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
 
     setLoading(true);
     const result = mode === 'signup'
-      ? await signUp(email.trim(), password, fullName.trim() || undefined)
+      ? await signUp(email.trim(), password, role, fullName.trim() || undefined, role === 'super_admin' ? facilityName.trim() : undefined)
       : await signIn(email.trim(), password);
     setLoading(false);
 
@@ -121,6 +125,56 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
                       value={fullName}
                       onChange={e => setFullName(e.target.value)}
                       placeholder="Votre nom"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {mode === 'signup' && (
+                <div className="space-y-3 w-full">
+                  <label className="block text-sm font-semibold text-slate-700">Type de compte</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => { setRole('family'); setFacilityName(''); }}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                        role === 'family'
+                          ? 'border-blue-600 bg-blue-50 shadow-md'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <User size={22} className={role === 'family' ? 'text-blue-600' : 'text-slate-400'} />
+                      <div className="mt-2 font-bold text-slate-900 text-sm">Personne âgée / Famille</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Santé, rappels, loisirs...</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('super_admin')}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                        role === 'super_admin'
+                          ? 'border-blue-600 bg-blue-50 shadow-md'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <Building2 size={22} className={role === 'super_admin' ? 'text-blue-600' : 'text-slate-400'} />
+                      <div className="mt-2 font-bold text-slate-900 text-sm">Maison de retraite</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Espace aidants</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {mode === 'signup' && role === 'super_admin' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700">Nom de l'établissement</label>
+                  <div className="relative">
+                    <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={facilityName}
+                      onChange={e => setFacilityName(e.target.value)}
+                      placeholder="Ex: Résidence Les Jardins"
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm"
                     />
                   </div>
