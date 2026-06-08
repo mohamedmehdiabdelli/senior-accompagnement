@@ -115,8 +115,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const initializeAuth = async () => {
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase getSession timeout')), 2000)
+      );
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
         if (!mounted) return;
         if (session?.user) {
           setUser(session.user);
@@ -124,6 +130,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.error('Auth init error:', err);
+        if (err instanceof Error && err.message === 'Supabase getSession timeout') {
+          console.warn('Auth init timed out — purging corrupted Supabase storage');
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-')) {
+              localStorage.removeItem(key);
+            }
+          }
+        }
       } finally {
         setLoading(false);
       }
