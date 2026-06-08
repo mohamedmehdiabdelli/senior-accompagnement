@@ -96,42 +96,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
-    const init = async () => {
-      try {
-        if (!isSupabaseConfigured()) {
-          const local = getLocalSession();
-          if (local && mounted) {
-            setProfile({
-              id: local.id,
-              email: local.email,
-              role: local.role,
-              full_name: local.full_name,
-              facility_id: local.facility_id,
-              created_at: local.created_at
-            });
-          }
-          return;
-        }
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user && mounted) {
-          setUser(session.user);
-          await loadProfile(session.user.id);
-        }
-      } catch (err) {
-        console.error('Auth init error:', err);
-      } finally {
-        if (mounted) setLoading(false);
+    if (!isSupabaseConfigured()) {
+      const local = getLocalSession();
+      if (local) {
+        setProfile({
+          id: local.id,
+          email: local.email,
+          role: local.role,
+          full_name: local.full_name,
+          facility_id: local.facility_id,
+          created_at: local.created_at
+        });
       }
-    };
-
-    init();
+      setLoading(false);
+      return;
+    }
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
-        if (!mounted) return;
+        if (cancelled) return;
         if (session?.user) {
           setUser(session.user);
           await loadProfile(session.user.id);
@@ -141,11 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.error('Auth state change error:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     });
 
     return () => {
-      mounted = false;
+      cancelled = true;
       sub?.subscription.unsubscribe();
     };
   }, []);
