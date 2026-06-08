@@ -88,17 +88,17 @@ begin
       new.raw_user_meta_data ->> 'full_name',
       whitelist_row.facility_id
     );
-    -- Remove from whitelist after use (optional, prevents re-use)
+    -- Remove from whitelist after use (prevents re-use)
     delete from allowed_staff where lower(email) = lower(new.email);
   else
-    -- Regular family user: insert profile with family role
+    -- No whitelist entry: respect metadata from frontend signUp
     insert into public.profiles (id, email, role, full_name, facility_id)
     values (
       new.id,
       new.email,
-      'family',
+      coalesce(new.raw_user_meta_data ->> 'role', 'family'),
       new.raw_user_meta_data ->> 'full_name',
-      null
+      (new.raw_user_meta_data ->> 'facility_id')::uuid
     );
   end if;
 
