@@ -126,7 +126,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
         if (session?.user) {
           setUser(session.user);
-          await loadProfile(session.user.id);
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          if (data) {
+            setProfile(data as TaminiProfile);
+          } else {
+            console.warn('Profile not found, using auth metadata fallback', error);
+            const meta = session.user.user_metadata;
+            setProfile({
+              id: session.user.id,
+              email: session.user.email ?? '',
+              role: (meta?.role as UserRole) ?? 'family',
+              full_name: meta?.full_name ?? undefined,
+              facility_id: meta?.facility_id ?? null,
+            });
+          }
         }
       } catch (err) {
         console.error('Auth init error:', err);

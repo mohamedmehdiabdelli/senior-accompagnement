@@ -28,7 +28,7 @@ function getClient(): ReturnType<typeof createClient> {
       _client = createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
           persistSession: true,
-          autoRefreshToken: false,
+          autoRefreshToken: true,
           detectSessionInUrl: false,
         },
       });
