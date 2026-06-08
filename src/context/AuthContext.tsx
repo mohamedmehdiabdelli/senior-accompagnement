@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    let cancelled = false;
+    let mounted = true;
 
     if (!isSupabaseConfigured()) {
       const local = getLocalSession();
@@ -114,9 +114,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const initializeAuth = async () => {
       try {
-        if (cancelled) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          setUser(session.user);
+          await loadProfile(session.user.id);
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+      if (!mounted) return;
+      try {
         if (session?.user) {
           setUser(session.user);
           await loadProfile(session.user.id);
@@ -126,13 +144,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.error('Auth state change error:', err);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     });
 
     return () => {
-      cancelled = true;
+      mounted = false;
       sub?.subscription.unsubscribe();
     };
   }, []);
