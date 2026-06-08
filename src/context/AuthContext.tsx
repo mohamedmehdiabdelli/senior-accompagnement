@@ -115,26 +115,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const initializeAuth = async () => {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Supabase getSession timeout')), 2000)
-      );
       try {
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise
-        ]);
+        const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
+
         if (session?.user) {
           setUser(session.user);
+
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .maybeSingle();
+
           if (data) {
             setProfile(data as TaminiProfile);
           } else {
-            console.warn('Profile not found, using auth metadata fallback', error);
+            console.warn('Profile record missing or inaccessible, using metadata fallback', error);
             const meta = session.user.user_metadata;
             setProfile({
               id: session.user.id,
@@ -144,20 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               facility_id: meta?.facility_id ?? null,
             });
           }
+        } else {
+          setUser(null);
+          setProfile(null);
         }
       } catch (err) {
         console.error('Auth init error:', err);
-        if (err instanceof Error && err.message === 'Supabase getSession timeout') {
-          console.warn('Auth init timed out — purging corrupted Supabase storage');
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('sb-')) {
-              localStorage.removeItem(key);
-            }
-          }
-        }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
@@ -166,10 +157,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'INITIAL_SESSION') return;
       if (!mounted) return;
+
       try {
         if (session?.user) {
           setUser(session.user);
-          await loadProfile(session.user.id);
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (data) {
+            setProfile(data as TaminiProfile);
+          } else {
+            const meta = session.user.user_metadata;
+            setProfile({
+              id: session.user.id,
+              email: session.user.email ?? '',
+              role: (meta?.role as UserRole) ?? 'family',
+              full_name: meta?.full_name ?? undefined,
+              facility_id: meta?.facility_id ?? null,
+            });
+          }
         } else {
           setUser(null);
           setProfile(null);

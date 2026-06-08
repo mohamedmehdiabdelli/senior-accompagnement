@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Strip any trailing /rest/v1/ or trailing slash — supabase-js wants the bare project URL
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 export const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -9,45 +8,30 @@ export function isSupabaseConfigured() {
   return !!supabaseUrl && !!supabaseAnonKey;
 }
 
+// Bypasses the Web Locks API to entirely eradicate navigatorLock deadlocks and timeout bugs
+const noOpLock = async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
+  return await fn();
+};
+
+export const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        lock: noOpLock,
+      },
+    })
+  : new Proxy({} as ReturnType<typeof createClient>, {
+      get: () => () => ({ data: null, error: { message: 'Supabase not configured' } }),
+    });
+
 export interface Facility {
   id: string;
   name: string;
   address: string;
   created_at?: string;
 }
-
-// Lazy singleton: createClient is deferred until first property access.
-// This prevents the gotrue client's internal storage-recovery logic from
-// deadlocking on cold boot. autoRefreshToken and detectSessionInUrl are
-// disabled to eliminate background localStorage parsing during init.
-let _client: ReturnType<typeof createClient> | null = null;
-
-function getClient(): ReturnType<typeof createClient> {
-  if (!_client) {
-    if (supabaseUrl && supabaseAnonKey) {
-      _client = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: false,
-        },
-      });
-    } else {
-      _client = new Proxy({} as ReturnType<typeof createClient>, {
-        get: () => () => ({ data: null, error: { message: 'Supabase not configured' } }),
-      });
-    }
-  }
-  return _client;
-}
-
-const NOOP_HANDLER: ProxyHandler<ReturnType<typeof createClient>> = {
-  get(_, prop) {
-    return Reflect.get(getClient(), prop);
-  },
-};
-
-export const supabase = new Proxy({} as ReturnType<typeof createClient>, NOOP_HANDLER);
 
 // Types matching our DB schema
 export interface Reminder {
