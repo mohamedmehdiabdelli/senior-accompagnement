@@ -255,26 +255,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null, userId: id };
       }
 
-      const { data: whitelist, error: whitelistError } = await supabase
+      const { data: invite, error: inviteError } = await supabase
         .from('allowed_staff')
-        .select('role, facility_id')
+        .select('*')
         .eq('email', email.toLowerCase())
         .maybeSingle();
 
-      if (whitelistError) {
-        console.warn('Allowed staff check error, proceeding as family:', whitelistError);
+      if (inviteError) {
+        return { error: 'Erreur lors de la vérification de votre invitation. Veuillez réessayer.' };
       }
 
-      const resolvedRole: UserRole = whitelist?.role ?? 'family';
-      const resolvedFacilityId: string | null = whitelist?.facility_id ?? null;
+      if (!invite) {
+        return { error: 'Cette adresse e-mail n\'est pas autorisée. Veuillez contacter votre administrateur.' };
+      }
 
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            role: resolvedRole,
-            facility_id: resolvedFacilityId,
+            role: invite.role,
+            facility_id: invite.facility_id,
             full_name: fullName || null
           }
         }
@@ -283,16 +284,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!data.user) return { error: 'Erreur inconnue lors de la création du compte.' };
 
       const userId = data.user.id;
-
-      if (resolvedRole === 'super_admin') {
-        const { error: rpcError } = await supabase.rpc('create_tenant', {
-          facility_name: fullName || 'Mon établissement'
-        });
-        if (rpcError) {
-          return { error: 'Erreur lors de la création de l\'établissement : ' + rpcError.message, userId };
-        }
-      }
-
       await loadProfile(userId);
       return { error: null, userId };
     } catch (err) {
