@@ -1,4 +1,4 @@
-import { Home, LogOut } from 'lucide-react';
+import { Home, LogOut, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +28,16 @@ export default function Header() {
             >
               <Home size={20} />
               <span className="hidden sm:inline">Accueil</span>
+            </Link>
+          )}
+          {profile?.role === 'super_admin' && (
+            <Link
+              to="/admin/staff"
+              className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-medium transition-colors bg-gray-50 px-4 py-2 rounded-full border border-gray-200"
+              title="Gestion du personnel"
+            >
+              <Shield size={18} />
+              <span className="hidden sm:inline">Personnel</span>
             </Link>
           )}
           {profile && (

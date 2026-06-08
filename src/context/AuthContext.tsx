@@ -13,13 +13,32 @@ export interface TaminiProfile {
   created_at?: string;
 }
 
+export interface AllowedStaffEntry {
+  id: string;
+  email: string;
+  role: UserRole;
+  facility_id: string;
+  created_at?: string;
+}
+
+export interface Facility {
+  id: string;
+  name: string;
+  address?: string;
+  created_at?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   profile: TaminiProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityName?: string) => Promise<{ error: string | null; userId?: string }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null; userId?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  inviteStaff: (email: string, role: UserRole, facilityId: string) => Promise<{ error: string | null }>;
+  revokeStaffAccess: (id: string) => Promise<{ error: string | null }>;
+  getAllowedStaff: () => Promise<{ data: AllowedStaffEntry[] | null; error: string | null }>;
+  getFacilities: () => Promise<{ data: Facility[] | null; error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +48,7 @@ const isSupabaseConfigured = () =>
 
 const LOCAL_USERS_KEY = 'tamini_local_users';
 const LOCAL_SESSION_KEY = 'tamini_local_session';
+const LOCAL_ALLOWED_STAFF_KEY = 'tamini_local_allowed_staff';
 
 interface LocalUser {
   id: string;
@@ -64,6 +84,15 @@ function setLocalSession(u: LocalUser | null) {
     if (u) localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(u));
     else localStorage.removeItem(LOCAL_SESSION_KEY);
   } catch {}
+}
+function getLocalAllowedStaff(): { email: string; role: UserRole; facility_id: string }[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_ALLOWED_STAFF_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function saveLocalAllowedStaff(list: { email: string; role: UserRole; facility_id: string }[]) {
+  try { localStorage.setItem(LOCAL_ALLOWED_STAFF_KEY, JSON.stringify(list)); } catch {}
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -194,18 +223,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityName) => {
+  const signUp: AuthContextType['signUp'] = async (email, password, fullName) => {
     try {
       if (!isSupabaseConfigured()) {
         const users = getLocalUsers();
         if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
           return { error: 'Un compte existe déjà avec cet email.' };
         }
+        const allowed = getLocalAllowedStaff();
+        const match = allowed.find(a => a.email.toLowerCase() === email.toLowerCase());
+        const resolvedRole = match?.role ?? 'family';
+        const resolvedFacilityId = match?.facility_id ?? null;
         const id = crypto.randomUUID();
         const newUser: LocalUser = {
-          id, email, password, role,
+          id, email, password,
+          role: resolvedRole,
           full_name: fullName,
-          facility_id: null,
+          facility_id: resolvedFacilityId,
           created_at: new Date().toISOString()
         };
         saveLocalUsers([...users, newUser]);
@@ -221,12 +255,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null, userId: id };
       }
 
+      const { data: whitelist, error: whitelistError } = await supabase
+        .from('allowed_staff')
+        .select('role, facility_id')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+
+      if (whitelistError) {
+        console.warn('Allowed staff check error, proceeding as family:', whitelistError);
+      }
+
+      const resolvedRole: UserRole = whitelist?.role ?? 'family';
+      const resolvedFacilityId: string | null = whitelist?.facility_id ?? null;
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            role,
+            role: resolvedRole,
+            facility_id: resolvedFacilityId,
             full_name: fullName || null
           }
         }
@@ -236,11 +284,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userId = data.user.id;
 
-      if (role === 'super_admin' && facilityName) {
+      if (resolvedRole === 'super_admin') {
         const { error: rpcError } = await supabase.rpc('create_tenant', {
-          facility_name: facilityName
+          facility_name: fullName || 'Mon établissement'
         });
-
         if (rpcError) {
           return { error: 'Erreur lors de la création de l\'établissement : ' + rpcError.message, userId };
         }
@@ -251,6 +298,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Sign up error:', err);
       return { error: 'Une erreur inattendue est survenue lors de l\'inscription.' };
+    }
+  };
+
+  const inviteStaff: AuthContextType['inviteStaff'] = async (email, role, facilityId) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        const list = getLocalAllowedStaff();
+        if (list.some(x => x.email.toLowerCase() === email.toLowerCase())) {
+          return { error: 'Cet email a déjà été invité.' };
+        }
+        saveLocalAllowedStaff([...list, { email: email.toLowerCase(), role, facility_id: facilityId }]);
+        return { error: null };
+      }
+
+      const { error } = await supabase
+        .from('allowed_staff')
+        .insert({ email: email.toLowerCase(), role, facility_id: facilityId });
+      if (error) {
+        if (error.code === '23505') {
+          return { error: 'Cet email a déjà été invité.' };
+        }
+        return { error: error.message };
+      }
+      return { error: null };
+    } catch (err) {
+      console.error('Invite staff error:', err);
+      return { error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const revokeStaffAccess: AuthContextType['revokeStaffAccess'] = async (id) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        const list = getLocalAllowedStaff();
+        const idx = parseInt(id, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < list.length) {
+          list.splice(idx, 1);
+          saveLocalAllowedStaff(list);
+        }
+        return { error: null };
+      }
+
+      const { error } = await supabase
+        .from('allowed_staff')
+        .delete()
+        .eq('id', id);
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (err) {
+      console.error('Revoke staff error:', err);
+      return { error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const getAllowedStaff: AuthContextType['getAllowedStaff'] = async () => {
+    try {
+      if (!isSupabaseConfigured()) {
+        const list = getLocalAllowedStaff();
+        return { data: list.map((x, i) => ({ id: String(i), ...x })), error: null };
+      }
+
+      const { data, error } = await supabase
+        .from('allowed_staff')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) return { data: null, error: error.message };
+      return { data: data as AllowedStaffEntry[], error: null };
+    } catch (err) {
+      console.error('Get allowed staff error:', err);
+      return { data: null, error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const getFacilities: AuthContextType['getFacilities'] = async () => {
+    try {
+      if (!isSupabaseConfigured()) {
+        return { data: null, error: 'Supabase n\'est pas configuré.' };
+      }
+
+      const { data, error } = await supabase
+        .from('facilities')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) return { data: null, error: error.message };
+      return { data: data as Facility[], error: null };
+    } catch (err) {
+      console.error('Get facilities error:', err);
+      return { data: null, error: 'Une erreur inattendue est survenue.' };
     }
   };
 
@@ -304,7 +439,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, inviteStaff, revokeStaffAccess, getAllowedStaff, getFacilities }}>
       {children}
     </AuthContext.Provider>
   );

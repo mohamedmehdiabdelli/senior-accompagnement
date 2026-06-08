@@ -15,6 +15,7 @@ import Loisirs from './pages/Loisirs';
 import Caregiver from './pages/Caregiver';
 import Wardrobe from './pages/Wardrobe';
 import AddClothing from './pages/AddClothing';
+import StaffManagement from './pages/StaffManagement';
 import Landing from './pages/Landing';
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
@@ -121,6 +122,10 @@ function AppShell() {
             <Route
               path="/vetements/ajouter"
               element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><AddClothing /></PageWrapper>}
+            />
+            <Route
+              path="/admin/staff"
+              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><StaffManagement /></PageWrapper>}
             />
 
             <Route path="*" element={<Navigate to="/" replace />} />
