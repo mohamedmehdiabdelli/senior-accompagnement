@@ -49,31 +49,43 @@ export default function StaffManagement() {
       return;
     }
 
-    setInviting(true);
-    const result = await inviteStaff(email.trim(), role, facilityId);
-    setInviting(false);
+    try {
+      setInviting(true);
+      const result = await inviteStaff(email.trim(), role, facilityId);
 
-    if (result.error) {
-      setError(result.error);
-      return;
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      setSuccess(`Invitation envoyée à ${email.trim()}`);
+      setEmail('');
+      await loadData();
+    } catch (err) {
+      console.error('Invite error:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur inattendue est survenue.');
+    } finally {
+      setInviting(false);
     }
-
-    setSuccess(`Invitation envoyée à ${email.trim()}`);
-    setEmail('');
-    await loadData();
   };
 
   const handleRevoke = async (id: string) => {
-    setRevokingId(id);
-    const result = await revokeStaffAccess(id);
-    setRevokingId(null);
+    try {
+      setRevokingId(id);
+      const result = await revokeStaffAccess(id);
 
-    if (result.error) {
-      setError(result.error);
-      return;
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      setStaffList(prev => prev.filter(s => s.id !== id));
+    } catch (err) {
+      console.error('Revoke error:', err);
+      setError(err instanceof Error ? err.message : 'Une erreur inattendue est survenue.');
+    } finally {
+      setRevokingId(null);
     }
-
-    setStaffList(prev => prev.filter(s => s.id !== id));
   };
 
   const getFacilityName = (id: string) => {

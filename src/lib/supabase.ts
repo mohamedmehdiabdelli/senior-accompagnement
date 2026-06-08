@@ -8,7 +8,7 @@ export function isSupabaseConfigured() {
   return !!supabaseUrl && !!supabaseAnonKey;
 }
 
-// Bypasses the Web Locks API to entirely eradicate navigatorLock deadlocks and timeout bugs
+// Bypasses the Web Locks API to entirely eradicate navigatorLock deadlocks
 const noOpLock = async (name: string, acquireTimeout: number, fn: () => Promise<any>) => {
   return await fn();
 };
