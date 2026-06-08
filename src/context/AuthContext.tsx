@@ -227,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const cleanEmail = email.toLowerCase().trim();
 
-      // --- 1. LOCAL OFFLINE MODE FALLBACK ---
+      // --- OFFLINE MODE ---
       if (!isSupabaseConfigured()) {
         const users = getLocalUsers();
         if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
@@ -248,15 +248,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // --- ONLINE SUPABASE MODE ---
 
-      // 1. Check the whitelist using the VIP RPC (Bypasses RLS blocks)
+      // 1. Check if user is an invited staff member using the VIP RPC (Bypasses RLS)
       const { data: invites, error: inviteError } = await supabase
         .rpc('get_staff_invite', { lookup_email: cleanEmail });
 
       const invite = invites && invites.length > 0 ? invites[0] : null;
 
-      // 2. Determine final role and facility (Override if invited)
+      // 2. Determine final role and facility (Override form choices if invited)
       const finalRole = invite ? (invite.invited_role as UserRole) : role;
       const finalFacilityId = invite ? invite.invited_facility_id : null;
+
+      // Block unauthorized staff attempts
+      if (!invite && !facilityName && role !== 'family' && role !== 'super_admin') {
+         return { error: "Cette adresse e-mail n'est pas autorisée. Veuillez contacter votre administrateur." };
+      }
 
       // 3. Create the user in Supabase Auth
       const { data, error } = await supabase.auth.signUp({
@@ -276,7 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userId = data.user.id;
 
-      // 4. Create facility ONLY IF they are a super_admin and it's a brand new facility
+      // 4. Create facility ONLY IF they are a super_admin creating a brand new facility
       if (finalRole === 'super_admin' && facilityName && !invite) {
         const { error: rpcError } = await supabase.rpc('create_tenant', {
           facility_name: facilityName
