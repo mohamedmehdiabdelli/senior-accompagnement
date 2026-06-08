@@ -115,14 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const initializeAuth = async () => {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Supabase getSession timeout')), 1500)
-      );
       try {
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise
-        ]);
+        const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
         if (session?.user) {
           setUser(session.user);
