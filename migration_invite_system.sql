@@ -47,19 +47,19 @@ create policy "Super admins can delete allowed_staff"
     )
   );
 
--- 3. Helper function: check if an email is whitelisted
-create or replace function get_allowed_staff(p_email text)
+-- 3. SECURITY DEFINER RPC: checks whitelist bypassing RLS for anonymous signups
+create or replace function get_staff_invite(lookup_email text)
 returns table (
-  out_email       text,
-  out_role        text,
-  out_facility_id uuid
+  invited_role        text,
+  invited_facility_id uuid
 )
 language sql
 stable
+security definer
 as $$
-  select lower(email)::text, role, facility_id
+  select role, facility_id
   from allowed_staff
-  where lower(email) = lower(p_email)
+  where lower(email) = lower(lookup_email)
   limit 1;
 $$;
 

@@ -242,44 +242,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         saveLocalUsers([...users, newUser]);
         setLocalSession(newUser);
-        setProfile({
-          id: newUser.id,
-          email: newUser.email,
-          role: newUser.role,
-          full_name: newUser.full_name,
-          facility_id: newUser.facility_id,
-          created_at: newUser.created_at
-        });
+        setProfile({ ...newUser });
         return { error: null, userId: id };
       }
 
-      // --- 2. ONLINE SUPABASE MODE ---
-      let assignedRole = role;
-      let assignedFacilityId: string | null = null;
+      // --- ONLINE SUPABASE MODE ---
 
-      // Check if user is an invited staff member
-      const { data: invite, error: inviteError } = await supabase
-        .from('allowed_staff')
-        .select('*')
-        .eq('email', cleanEmail)
-        .maybeSingle();
+      // 1. Check the whitelist using the VIP RPC (Bypasses RLS blocks)
+      const { data: invites, error: inviteError } = await supabase
+        .rpc('get_staff_invite', { lookup_email: cleanEmail });
 
-      if (invite) {
-        assignedRole = invite.role;
-        assignedFacilityId = invite.facility_id;
-      } else if (!facilityName) {
-        // Not an invited staff member and not trying to create a new retirement home
-        return { error: "Cette adresse e-mail n'est pas autorisée. Veuillez contacter votre administrateur." };
-      }
+      const invite = invites && invites.length > 0 ? invites[0] : null;
 
-      // Perform the actual signup with Supabase Auth
+      // 2. Determine final role and facility (Override if invited)
+      const finalRole = invite ? (invite.invited_role as UserRole) : role;
+      const finalFacilityId = invite ? invite.invited_facility_id : null;
+
+      // 3. Create the user in Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
           data: {
-            role: assignedRole,
-            facility_id: assignedFacilityId,
+            role: finalRole,
+            facility_id: finalFacilityId,
             full_name: fullName || null
           }
         }
@@ -290,8 +276,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userId = data.user.id;
 
-      // If this is a brand new Super Admin creating a retirement home, trigger the creation RPC
-      if (assignedRole === 'super_admin' && facilityName) {
+      // 4. Create facility ONLY IF they are a super_admin and it's a brand new facility
+      if (finalRole === 'super_admin' && facilityName && !invite) {
         const { error: rpcError } = await supabase.rpc('create_tenant', {
           facility_name: facilityName
         });
@@ -301,7 +287,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Reload profile state cleanly
       await loadProfile(userId);
       return { error: null, userId };
     } catch (err) {
