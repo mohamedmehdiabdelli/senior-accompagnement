@@ -265,14 +265,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          return { error: "Cette adresse e-mail n'est pas autorisée. Veuillez contacter votre administrateur." };
       }
 
-      // 3. Create the user in Supabase Auth
+       // 3. Create the user in Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
           data: {
             role: finalRole,
-            facility_id: finalFacilityId,
+            facility_id: finalFacilityId || null,
             full_name: fullName || null
           }
         }
@@ -298,7 +298,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null, userId };
     } catch (err) {
       console.error('Sign up error:', err);
-      return { error: "Une erreur inattendue est survenue lors de l'inscription." };
+      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err);
+      return { error: `Une erreur inattendue est survenue lors de l'inscription: ${errorMsg}` };
     }
   };
 
