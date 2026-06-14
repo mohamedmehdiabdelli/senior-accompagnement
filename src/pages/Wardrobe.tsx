@@ -85,7 +85,7 @@ export default function Wardrobe() {
         });
         setScanFile(compressed);
       } catch (err) {
-        setScanError('Erreur lors de la compression de l'image. Veuillez réessayer.');
+        setScanError('Erreur lors de la compression de l\'image. Veuillez réessayer.');
         console.error('Image compression error:', err);
         setScanFile(null);
       }

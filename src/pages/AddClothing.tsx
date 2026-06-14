@@ -66,7 +66,7 @@ export default function AddClothing(){
         });
         setPhotoFile(compressed);
       } catch (err) {
-        setError('Erreur lors de la compression de l'image. Veuillez réessayer.');
+        setError('Erreur lors de la compression de l\'image. Veuillez réessayer.');
         console.error('Image compression error:', err);
         setPhotoFile(null);
       }
