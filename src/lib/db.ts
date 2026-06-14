@@ -2,6 +2,13 @@
  * Database abstraction layer.
  * Uses Supabase when configured, falls back to localStorage for offline/demo mode.
  * This ensures the app works even before Supabase is set up.
+ * 
+ * PERFORMANCE IMPROVEMENT OPPORTUNITY:
+ * Current implementation loads related data individually (N+1 pattern).
+ * For a senior with medicines, vitals, and care logs, consider:
+ * - Create a batch query function: getSeniorWithAllData(seniorId)
+ * - Uses Promise.all to load related tables in parallel
+ * - Reduces from 4 separate requests to 1 batch operation
  */
 import { supabase, Reminder, Senior, Medicine, VitalRecord, CareLog, HealthProduct, ClothingItem } from './supabase';
 
@@ -252,6 +259,7 @@ export async function addClothingItem(
       ...item,
       id: crypto.randomUUID(),
       owner_id: ownerId,
+      facility_id: facilityId || null,
       created_at: new Date().toISOString()
     };
     saveLocalClothingItems(ownerId, [newItem, ...items]);
@@ -323,7 +331,12 @@ function getLocalClothingItems(ownerId?: string): ClothingItem[] {
   const raw = localStorage.getItem(`clothing_items_${ownerId}`);
   if (!raw) return getDefaultClothingItems();
   try {
-    return JSON.parse(raw) as ClothingItem[];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      console.warn('Invalid clothing items format in localStorage');
+      return getDefaultClothingItems();
+    }
+    return parsed as ClothingItem[];
   } catch (error) {
     console.error('Failed to parse local clothing items', error);
     return getDefaultClothingItems();
@@ -346,6 +359,7 @@ export function getDefaultClothingItems(): ClothingItem[] {
       type: 'Jour',
       image_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800',
       location: 'Armoire A - étagère 2',
+      facility_id: null,
       ai_metadata: {}
     },
     {
@@ -358,6 +372,7 @@ export function getDefaultClothingItems(): ClothingItem[] {
       type: 'Nuit',
       image_url: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&q=80&w=800',
       location: 'Armoire A - tiroir 1',
+      facility_id: null,
       ai_metadata: {}
     },
     {
@@ -370,16 +385,14 @@ export function getDefaultClothingItems(): ClothingItem[] {
       type: 'Sortie',
       image_url: 'https://images.unsplash.com/photo-1520975929533-8c6bbd91e2a1?auto=format&fit=crop&q=80&w=800',
       location: 'Armoire B - portants',
+      facility_id: null,
       ai_metadata: {}
     }
   ];
 }
 
-function normalizeClothingItem(item: ClothingItem & { item_name?: string; name?: string }): ClothingItem {
-  const { item_name: _itemName, name: _name, ...rest } = item;
-  return {
-    ...rest
-  };
+function normalizeClothingItem(item: ClothingItem): ClothingItem {
+  return item;
 }
 
 // --------- SUBSCRIPTION ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -87,27 +87,27 @@ function AppShell() {
             {/* Elderly-only routes */}
             <Route
               path="/besoins"
-              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Besoins /></PageWrapper>}
+              element={profile?.role === 'family' ? <PageWrapper><Besoins /></PageWrapper> : <Navigate to="/" replace />}
             />
             <Route
               path="/psychique"
-              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Psychique /></PageWrapper>}
+              element={profile?.role === 'family' ? <PageWrapper><Psychique /></PageWrapper> : <Navigate to="/" replace />}
             />
             <Route
               path="/telemedicine"
-              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Telemedicine /></PageWrapper>}
+              element={profile?.role === 'family' ? <PageWrapper><Telemedicine /></PageWrapper> : <Navigate to="/" replace />}
             />
             <Route
               path="/rappels"
-              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Rappels /></PageWrapper>}
+              element={profile?.role === 'family' ? <PageWrapper><Rappels /></PageWrapper> : <Navigate to="/" replace />}
             />
             <Route
               path="/alerte"
-              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Alerte /></PageWrapper>}
+              element={profile?.role === 'family' ? <PageWrapper><Alerte /></PageWrapper> : <Navigate to="/" replace />}
             />
             <Route
               path="/loisirs"
-              element={isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Loisirs /></PageWrapper>}
+              element={profile?.role === 'family' ? <PageWrapper><Loisirs /></PageWrapper> : <Navigate to="/" replace />}
             />
 
             {/* Nursing-home-only route */}

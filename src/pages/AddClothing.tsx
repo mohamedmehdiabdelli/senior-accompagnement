@@ -47,7 +47,17 @@ export default function AddClothing(){
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
+    setError(null);
+    setMessage(null);
+    
     if (file) {
+      const maxSizeInMB = 5;
+      if (file.size > maxSizeInMB * 1024 * 1024) {
+        setError(`Le fichier est trop volumineux. Taille maximale: ${maxSizeInMB}MB`);
+        setPhotoFile(null);
+        return;
+      }
+      
       try {
         const compressed = await imageCompression(file, {
           maxSizeMB: 0.2,
@@ -55,14 +65,14 @@ export default function AddClothing(){
           useWebWorker: true,
         });
         setPhotoFile(compressed);
-      } catch {
-        setPhotoFile(file);
+      } catch (err) {
+        setError('Erreur lors de la compression de l'image. Veuillez réessayer.');
+        console.error('Image compression error:', err);
+        setPhotoFile(null);
       }
     } else {
       setPhotoFile(null);
     }
-    setError(null);
-    setMessage(null);
   };
 
   const registerClothingImage = async (file: File, residentName: string) => {
@@ -148,7 +158,7 @@ export default function AddClothing(){
       setTimeout(() => {
         navigate('/vetements');
       }, 800);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('AddClothing submit error:', error);
       setError(error?.message ?? 'Impossible d’ajouter le vêtement. Veuillez réessayer.');
     } finally {

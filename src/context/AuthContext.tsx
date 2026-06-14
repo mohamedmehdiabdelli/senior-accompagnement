@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 export type UserRole = 'super_admin' | 'admin' | 'caregiver' | 'family';
@@ -168,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: (meta?.role as UserRole) ?? 'family',
               full_name: meta?.full_name ?? undefined,
               facility_id: meta?.facility_id ?? null,
+              created_at: new Date().toISOString()
             });
           }
         } else {
@@ -206,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: (meta?.role as UserRole) ?? 'family',
               full_name: meta?.full_name ?? undefined,
               facility_id: meta?.facility_id ?? null,
+              created_at: new Date().toISOString()
             });
           }
         } else {

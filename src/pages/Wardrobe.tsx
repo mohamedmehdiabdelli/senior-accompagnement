@@ -66,7 +66,17 @@ export default function Wardrobe() {
 
   const handleScanFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
+    setScanError(null);
+    setScanResult(null);
+    
     if (file) {
+      const maxSizeInMB = 5;
+      if (file.size > maxSizeInMB * 1024 * 1024) {
+        setScanError(`Le fichier est trop volumineux. Taille maximale: ${maxSizeInMB}MB`);
+        setScanFile(null);
+        return;
+      }
+      
       try {
         const compressed = await imageCompression(file, {
           maxSizeMB: 0.2,
@@ -74,14 +84,14 @@ export default function Wardrobe() {
           useWebWorker: true,
         });
         setScanFile(compressed);
-      } catch {
-        setScanFile(file);
+      } catch (err) {
+        setScanError('Erreur lors de la compression de l'image. Veuillez réessayer.');
+        console.error('Image compression error:', err);
+        setScanFile(null);
       }
     } else {
       setScanFile(null);
     }
-    setScanError(null);
-    setScanResult(null);
   };
 
   const searchLostClothing = async (file: File) => {
@@ -137,7 +147,7 @@ export default function Wardrobe() {
 
       const result = await searchLostClothing(scanFile);
       setScanResult(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Lost clothing scan error:', error);
       setScanError(error?.message ?? 'Impossible d’analyser l’image. Veuillez réessayer.');
     } finally {

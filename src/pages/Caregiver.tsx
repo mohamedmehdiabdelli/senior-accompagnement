@@ -1283,7 +1283,7 @@ export default function Caregiver() {
                     <label className="text-xs font-bold text-slate-500 block font-bold">Horaire de prise</label>
                     <select
                       value={newMedTime}
-                      onChange={(e) => setNewMedTime(e.target.value as any)}
+                      onChange={(e) => setNewMedTime(e.target.value as 'Matin' | 'Midi' | 'Soir' | 'Nuit')}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:border-emerald-600 outline-none transition-all text-sm font-semibold"
                     >
                       <option value="Matin">Matin</option>
@@ -1466,7 +1466,7 @@ export default function Caregiver() {
                     <label className="text-[10px] font-bold text-slate-400 block uppercase font-bold">Appétit</label>
                     <select
                       value={newLogAppetite}
-                      onChange={(e) => setNewLogAppetite(e.target.value as any)}
+                      onChange={(e) => setNewLogAppetite(e.target.value as 'Excellent' | 'Moyen' | 'Faible')}
                       className="w-full bg-slate-50 border border-slate-250 rounded-xl p-2.5 outline-none transition-all text-xs font-bold"
                     >
                       <option value="Moyen">Moyen</option>
@@ -1478,7 +1478,7 @@ export default function Caregiver() {
                     <label className="text-[10px] font-bold text-slate-400 block uppercase font-bold">Sommeil</label>
                     <select
                       value={newLogSleep}
-                      onChange={(e) => setNewLogSleep(e.target.value as any)}
+                      onChange={(e) => setNewLogSleep(e.target.value as 'Bon' | 'Agité' | 'Mauvais')}
                       className="w-full bg-slate-50 border border-slate-250 rounded-xl p-2.5 outline-none transition-all text-xs font-bold"
                     >
                       <option value="Bon">Bon</option>

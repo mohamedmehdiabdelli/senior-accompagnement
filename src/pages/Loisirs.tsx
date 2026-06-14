@@ -113,7 +113,7 @@ export default function Loisirs() {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'books' | 'games' | 'jokes')}
             className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-bold transition-all ${
               activeTab === tab.id 
               ? 'bg-blue-600 text-white shadow-xl shadow-blue-200 ring-4 ring-blue-100' 

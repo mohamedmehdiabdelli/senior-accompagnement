@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { getSubscriptionStatus, setSubscriptionStatus } from '../lib/db';
 
 interface SubscriptionContextType {
@@ -16,15 +16,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setIsSubscribed(getSubscriptionStatus());
   }, []);
 
-  const subscribe = () => {
+  const subscribe = useCallback(() => {
     setIsSubscribed(true);
     setSubscriptionStatus(true);
-  };
+  }, []);
 
-  const unsubscribe = () => {
+  const unsubscribe = useCallback(() => {
     setIsSubscribed(false);
     setSubscriptionStatus(false);
-  };
+  }, []);
 
   return (
     <SubscriptionContext.Provider value={{ isSubscribed, subscribe, unsubscribe }}>
