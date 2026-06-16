@@ -13,6 +13,7 @@ create table if not exists profiles (
   email text not null,
   role text not null check (role in ('elderly','nursing_home')),
   full_name text,
+  approved boolean not null default true,
   created_at timestamptz default now()
 );
 
@@ -23,17 +24,19 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, role, full_name)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'role', 'elderly'),
-    nullif(new.raw_user_meta_data->>'full_name', '')
-  )
-  on conflict (id) do update set
-    email = excluded.email,
-    role = excluded.role,
-    full_name = excluded.full_name;
+insert into public.profiles (id, email, role, full_name, approved)
+    values (
+      new.id,
+      new.email,
+      coalesce(new.raw_user_meta_data->>'role', 'elderly'),
+      nullif(new.raw_user_meta_data->>'full_name', ''),
+      coalesce((new.raw_user_meta_data->>'approved')::boolean, true)
+    )
+    on conflict (id) do update set
+      email = excluded.email,
+      role = excluded.role,
+      full_name = excluded.full_name,
+      approved = excluded.approved;
 
   return new;
 end;

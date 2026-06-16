@@ -10,6 +10,7 @@ export interface TaminiProfile {
   role: UserRole;
   full_name?: string;
   facility_id: string | null;
+  approved?: boolean;
   created_at?: string;
 }
 
@@ -32,19 +33,21 @@ interface AuthContextType {
   user: User | null;
   profile: TaminiProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityName?: string) => Promise<{ error: string | null; userId?: string }>;
+  signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityName?: string, facilityId?: string) => Promise<{ error: string | null; userId?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   inviteStaff: (email: string, role: UserRole, facilityId: string) => Promise<{ error: string | null }>;
   revokeStaffAccess: (id: string) => Promise<{ error: string | null }>;
   getAllowedStaff: () => Promise<{ data: AllowedStaffEntry[] | null; error: string | null }>;
   getFacilities: () => Promise<{ data: Facility[] | null; error: string | null }>;
+  getPendingWorkerRequests: () => Promise<{ data: TaminiProfile[] | null; error: string | null }>;
+  approveWorkerRequest: (id: string) => Promise<{ error: string | null }>;
+  rejectWorkerRequest: (id: string) => Promise<{ error: string | null }>;
+  getFacilityStaff: () => Promise<{ data: TaminiProfile[] | null; error: string | null }>;
+  removeWorker: (id: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const isSupabaseConfigured = () =>
-  !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const LOCAL_USERS_KEY = 'tamini_local_users';
 const LOCAL_SESSION_KEY = 'tamini_local_session';
@@ -57,6 +60,7 @@ interface LocalUser {
   role: UserRole;
   full_name?: string;
   facility_id: string | null;
+  approved?: boolean;
   created_at: string;
 }
 
@@ -100,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<TaminiProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (userId: string): Promise<TaminiProfile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -110,17 +114,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Profile load error:', error);
         setProfile(null);
-        return;
+        return null;
       }
       if (!data) {
         console.warn(`No profile found for user ${userId}`);
         setProfile(null);
-        return;
+        return null;
       }
-      setProfile(data as TaminiProfile);
+      const profileData = data as TaminiProfile;
+      setProfile(profileData);
+      return profileData;
     } catch (err) {
       console.error('Unexpected error loading profile:', err);
       setProfile(null);
+      return null;
     }
   };
 
@@ -136,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: local.role,
           full_name: local.full_name,
           facility_id: local.facility_id,
+          approved: local.approved,
           created_at: local.created_at
         });
       }
@@ -151,25 +159,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           setUser(session.user);
 
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (data) {
-            setProfile(data as TaminiProfile);
-          } else {
-            console.warn('Profile record missing or inaccessible, using metadata fallback', error);
-            const meta = session.user.user_metadata;
-            setProfile({
-              id: session.user.id,
-              email: session.user.email ?? '',
-              role: (meta?.role as UserRole) ?? 'family',
-              full_name: meta?.full_name ?? undefined,
-              facility_id: meta?.facility_id ?? null,
-              created_at: new Date().toISOString()
-            });
+          const profileData = await loadProfile(session.user.id);
+          if (profileData && profileData.role === 'caregiver' && profileData.approved === false) {
+            console.warn('Caregiver account is not approved yet');
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            return;
           }
         } else {
           setUser(null);
@@ -191,24 +187,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (session?.user) {
           setUser(session.user);
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (data) {
-            setProfile(data as TaminiProfile);
-          } else {
-            const meta = session.user.user_metadata;
-            setProfile({
-              id: session.user.id,
-              email: session.user.email ?? '',
-              role: (meta?.role as UserRole) ?? 'family',
-              full_name: meta?.full_name ?? undefined,
-              facility_id: meta?.facility_id ?? null,
-              created_at: new Date().toISOString()
-            });
+          const profileData = await loadProfile(session.user.id);
+          if (profileData && profileData.role === 'caregiver' && profileData.approved === false) {
+            console.warn('Caregiver account is not approved yet');
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            return;
           }
         } else {
           setUser(null);
@@ -225,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityName) => {
+  const signUp: AuthContextType['signUp'] = async (email, password, role, fullName, facilityName, facilityId) => {
     try {
       const cleanEmail = email.toLowerCase().trim();
 
@@ -237,14 +222,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         const id = crypto.randomUUID();
         const newUser: LocalUser = {
-          id, email: cleanEmail, password, role,
+          id,
+          email: cleanEmail,
+          password,
+          role,
           full_name: fullName,
-          facility_id: null,
+          facility_id: facilityId || null,
+          approved: role !== 'caregiver',
           created_at: new Date().toISOString()
         };
         saveLocalUsers([...users, newUser]);
         setLocalSession(newUser);
-        setProfile({ ...newUser });
+        setProfile({ ...newUser, approved: role !== 'caregiver' });
         return { error: null, userId: id };
       }
 
@@ -255,17 +244,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .rpc('get_staff_invite', { lookup_email: cleanEmail });
 
       const invite = invites && invites.length > 0 ? invites[0] : null;
-
-      // 2. Determine final role and facility (Override form choices if invited)
       const finalRole = invite ? (invite.invited_role as UserRole) : role;
-      const finalFacilityId = invite ? invite.invited_facility_id : null;
+      const finalFacilityId = invite ? invite.invited_facility_id : facilityId || null;
+      const isSuperAdmin = finalRole === 'super_admin';
+      const isCaregiver = finalRole === 'caregiver';
 
-      // Block unauthorized staff attempts
-      if (!invite && !facilityName && role !== 'family' && role !== 'super_admin') {
-         return { error: "Cette adresse e-mail n'est pas autorisée. Veuillez contacter votre administrateur." };
+      if (isCaregiver && !finalFacilityId) {
+        return { error: 'Veuillez sélectionner une maison de retraite existante.' };
       }
 
-       // 3. Create the user in Supabase Auth
+      if (isSuperAdmin && !facilityName && !invite) {
+        return { error: 'Veuillez saisir le nom de votre maison de retraite.' };
+      }
+
+      const approved = Boolean(invite || isSuperAdmin || role === 'family');
+
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -273,7 +266,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: {
             role: finalRole,
             facility_id: finalFacilityId || null,
-            full_name: fullName || null
+            full_name: fullName || null,
+            approved
           }
         }
       });
@@ -283,14 +277,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userId = data.user.id;
 
-      // 4. Create facility ONLY IF they are a super_admin creating a brand new facility
-      if (finalRole === 'super_admin' && facilityName && !invite) {
+      if (isSuperAdmin && facilityName && !invite) {
         const { error: rpcError } = await supabase.rpc('create_tenant', {
           facility_name: facilityName
         });
 
         if (rpcError) {
-          return { error: "Erreur lors de la création de l'établissement : " + rpcError.message, userId };
+          return { error: "Erreur lors de la création de l'établissement : " + rpcError.message };
         }
       }
 
@@ -350,6 +343,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (err) {
       console.error('Revoke staff error:', err);
+      return { error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const getPendingWorkerRequests: AuthContextType['getPendingWorkerRequests'] = async () => {
+    try {
+      if (!isSupabaseConfigured()) {
+        const users = getLocalUsers().filter(u => u.role === 'caregiver' && u.approved === false);
+        return { data: users.map(u => ({ ...u, approved: false })), error: null };
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'caregiver')
+        .eq('approved', false);
+      if (error) return { data: null, error: error.message };
+      return { data: data as TaminiProfile[], error: null };
+    } catch (err) {
+      console.error('Get pending worker requests error:', err);
+      return { data: null, error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const approveWorkerRequest: AuthContextType['approveWorkerRequest'] = async (id) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        return { error: null };
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .update({ approved: true })
+        .eq('id', id);
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (err) {
+      console.error('Approve worker request error:', err);
+      return { error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const rejectWorkerRequest: AuthContextType['rejectWorkerRequest'] = async (id) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        return { error: null };
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (err) {
+      console.error('Reject worker request error:', err);
+      return { error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const getFacilityStaff: AuthContextType['getFacilityStaff'] = async () => {
+    try {
+      if (!isSupabaseConfigured()) {
+        const users = getLocalUsers().filter(u => u.role !== 'family' && u.approved !== false);
+        return { data: users as TaminiProfile[], error: null };
+      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('role', 'family')
+        .eq('approved', true);
+      if (error) return { data: null, error: error.message };
+      return { data: data as TaminiProfile[], error: null };
+    } catch (err) {
+      console.error('Get facility staff error:', err);
+      return { data: null, error: 'Une erreur inattendue est survenue.' };
+    }
+  };
+
+  const removeWorker: AuthContextType['removeWorker'] = async (id) => {
+    try {
+      if (!isSupabaseConfigured()) {
+        return { error: null };
+      }
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+      if (error) return { error: error.message };
+      return { error: null };
+    } catch (err) {
+      console.error('Remove worker error:', err);
       return { error: 'Une erreur inattendue est survenue.' };
     }
   };
@@ -415,7 +498,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) return { error: error.message };
 
       if (data.user) {
-        await loadProfile(data.user.id);
+        const profileData = await loadProfile(data.user.id);
+        if (profileData && profileData.role === 'caregiver' && profileData.approved === false) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setProfile(null);
+          return { error: 'Votre compte est en attente d\'approbation.' };
+        }
       }
       return { error: null };
     } catch (err) {
@@ -441,7 +530,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, inviteStaff, revokeStaffAccess, getAllowedStaff, getFacilities }}>
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      inviteStaff,
+      revokeStaffAccess,
+      getAllowedStaff,
+      getFacilities,
+      getPendingWorkerRequests,
+      approveWorkerRequest,
+      rejectWorkerRequest,
+      getFacilityStaff,
+      removeWorker
+    }}>
       {children}
     </AuthContext.Provider>
   );

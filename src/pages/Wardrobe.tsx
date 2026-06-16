@@ -149,7 +149,7 @@ export default function Wardrobe() {
       setScanResult(result);
     } catch (error: unknown) {
       console.error('Lost clothing scan error:', error);
-      setScanError(error?.message ?? 'Impossible d’analyser l’image. Veuillez réessayer.');
+      setScanError(error instanceof Error ? error.message : 'Impossible d’analyser l’image. Veuillez réessayer.');
     } finally {
       setScanLoading(false);
     }

@@ -160,7 +160,7 @@ export default function AddClothing(){
       }, 800);
     } catch (error: unknown) {
       console.error('AddClothing submit error:', error);
-      setError(error?.message ?? 'Impossible d’ajouter le vêtement. Veuillez réessayer.');
+      setError(error instanceof Error ? error.message : 'Impossible d’ajouter le vêtement. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }

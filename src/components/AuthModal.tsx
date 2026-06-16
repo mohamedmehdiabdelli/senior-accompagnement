@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Building2, Loader2 } from 'lucide-react';
-import { useAuth, UserRole } from '../context/AuthContext';
+import { useAuth, UserRole, Facility } from '../context/AuthContext';
 
 type Mode = 'signin' | 'signup';
 
@@ -18,17 +18,40 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<UserRole>('family');
   const [facilityName, setFacilityName] = useState('');
+  const [facilityId, setFacilityId] = useState('');
+  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [loadingFacilities, setLoadingFacilities] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, getFacilities } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
       setError(null);
+      setFacilityId('');
+      setFacilityName('');
+      setFacilities([]);
     }
   }, [isOpen, initialMode]);
+
+  useEffect(() => {
+    if (isOpen && mode === 'signup') {
+      const loadFacilities = async () => {
+        setLoadingFacilities(true);
+        const result = await getFacilities();
+        setLoadingFacilities(false);
+        if (result.data) {
+          setFacilities(result.data);
+          if (result.data.length > 0) {
+            setFacilityId(result.data[0].id);
+          }
+        }
+      };
+      loadFacilities();
+    }
+  }, [isOpen, mode, getFacilities]);
 
   const reset = () => {
     setEmail('');
@@ -36,6 +59,8 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
     setFullName('');
     setRole('family');
     setFacilityName('');
+    setFacilityId('');
+    setFacilities([]);
     setError(null);
     setLoading(false);
   };
@@ -57,10 +82,25 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
       setError('Le mot de passe doit contenir au moins 6 caractères.');
       return;
     }
+    if (mode === 'signup' && role === 'super_admin' && !facilityName.trim()) {
+      setError('Veuillez saisir le nom de la maison de retraite.');
+      return;
+    }
+    if (mode === 'signup' && role === 'caregiver' && !facilityId) {
+      setError('Veuillez choisir une maison de retraite existante.');
+      return;
+    }
 
     setLoading(true);
     const result = mode === 'signup'
-      ? await signUp(email.trim(), password, role, fullName.trim() || undefined, role === 'super_admin' ? facilityName.trim() : undefined)
+      ? await signUp(
+          email.trim(),
+          password,
+          role,
+          fullName.trim() || undefined,
+          role === 'super_admin' ? facilityName.trim() : undefined,
+          role === 'caregiver' ? facilityId : undefined
+        )
       : await signIn(email.trim(), password);
     setLoading(false);
 
@@ -134,10 +174,10 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
               {mode === 'signup' && (
                 <div className="space-y-3 w-full">
                   <label className="block text-sm font-semibold text-slate-700">Type de compte</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button
                       type="button"
-                      onClick={() => { setRole('family'); setFacilityName(''); }}
+                      onClick={() => { setRole('family'); setFacilityName(''); setFacilityId(''); }}
                       className={`p-4 rounded-2xl border-2 text-left transition-all ${
                         role === 'family'
                           ? 'border-blue-600 bg-blue-50 shadow-md'
@@ -150,7 +190,7 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
                     </button>
                     <button
                       type="button"
-                      onClick={() => setRole('super_admin')}
+                      onClick={() => { setRole('super_admin'); setFacilityId(''); setFacilityName(''); }}
                       className={`p-4 rounded-2xl border-2 text-left transition-all ${
                         role === 'super_admin'
                           ? 'border-blue-600 bg-blue-50 shadow-md'
@@ -158,8 +198,21 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
                       }`}
                     >
                       <Building2 size={22} className={role === 'super_admin' ? 'text-blue-600' : 'text-slate-400'} />
-                      <div className="mt-2 font-bold text-slate-900 text-sm">Maison de retraite</div>
-                      <div className="text-xs text-slate-500 mt-0.5">Espace aidants</div>
+                      <div className="mt-2 font-bold text-slate-900 text-sm">Administrateur</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Créer une maison de retraite</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setRole('caregiver'); setFacilityName(''); }}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                        role === 'caregiver'
+                          ? 'border-blue-600 bg-blue-50 shadow-md'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <Building2 size={22} className={role === 'caregiver' ? 'text-blue-600' : 'text-slate-400'} />
+                      <div className="mt-2 font-bold text-slate-900 text-sm">Travailleur</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Rejoindre une maison existante</div>
                     </button>
                   </div>
                 </div>
@@ -178,6 +231,30 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm"
                     />
                   </div>
+                </div>
+              )}
+
+              {mode === 'signup' && role === 'caregiver' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700">Maison de retraite</label>
+                  <div className="relative">
+                    <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <select
+                      value={facilityId}
+                      onChange={e => setFacilityId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all text-sm appearance-none cursor-pointer"
+                    >
+                      <option value="">Choisir une maison existante</option>
+                      {loadingFacilities ? (
+                        <option disabled>Chargement...</option>
+                      ) : (
+                        facilities.map(facility => (
+                          <option key={facility.id} value={facility.id}>{facility.name}</option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                  <p className="text-xs text-slate-500">Votre inscription sera envoyée pour approbation à l'administrateur.</p>
                 </div>
               )}
 

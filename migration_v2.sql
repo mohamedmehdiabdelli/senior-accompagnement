@@ -34,19 +34,24 @@ comment on column facilities.address is 'Physical address of the facility';
 alter table profiles
   add column facility_id uuid references facilities(id) on delete set null;
 
--- 2b. Drop the old role check constraint
+-- 2b. Add approved state for caregiver onboarding
+alter table profiles
+  add column approved boolean not null default true;
+
+-- 2c. Drop the old role check constraint
 alter table profiles
   drop constraint if exists profiles_role_check;
 
--- 2c. Add the new role check constraint
+-- 2d. Add the new role check constraint
 alter table profiles
   add constraint profiles_role_check
   check (role in ('super_admin', 'admin', 'caregiver', 'family'));
 
 comment on column profiles.role        is 'super_admin | admin | caregiver | family';
 comment on column profiles.facility_id is 'FK to facilities — null only for system-level accounts';
+comment on column profiles.approved    is 'Whether a caregiver account has been approved by an administrator';
 
--- 2d. Rebuild the auto-signup trigger for the new role set
+-- 2e. Rebuild the auto-signup trigger for the new role set
 drop trigger if exists on_auth_user_created on auth.users;
 
 create or replace function public.handle_new_user()
@@ -56,19 +61,21 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, role, full_name, facility_id)
+  insert into public.profiles (id, email, role, full_name, facility_id, approved)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'role', 'caregiver'),
     nullif(new.raw_user_meta_data->>'full_name', ''),
-    (new.raw_user_meta_data->>'facility_id')::uuid
+    (new.raw_user_meta_data->>'facility_id')::uuid,
+    coalesce((new.raw_user_meta_data->>'approved')::boolean, true)
   )
   on conflict (id) do update set
     email       = excluded.email,
     role        = excluded.role,
     full_name   = excluded.full_name,
-    facility_id = coalesce(excluded.facility_id, profiles.facility_id);
+    facility_id = coalesce(excluded.facility_id, profiles.facility_id),
+    approved    = coalesce(excluded.approved, profiles.approved);
 
   return new;
 end;

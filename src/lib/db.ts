@@ -30,7 +30,7 @@ export async function getReminders(): Promise<Reminder[]> {
 export async function addReminder(r: Omit<Reminder, 'id' | 'created_at' | 'facility_id'>, facilityId?: string): Promise<Reminder | null> {
   if (!isSupabaseConfigured()) {
     const reminders = await getReminders();
-    const newR = { ...r, id: crypto.randomUUID() };
+    const newR = { ...r, id: crypto.randomUUID(), facility_id: facilityId || 'local' };
     const updated = [...reminders, newR];
     localStorage.setItem('reminders', JSON.stringify(updated));
     return newR;
@@ -74,7 +74,7 @@ export async function getSeniors(): Promise<Senior[]> {
 export async function addSenior(s: Omit<Senior, 'id' | 'created_at' | 'facility_id'>, facilityId?: string): Promise<Senior | null> {
   if (!isSupabaseConfigured()) {
     const seniors = await getSeniors();
-    const newS = { ...s, id: crypto.randomUUID() };
+    const newS = { ...s, id: crypto.randomUUID(), facility_id: facilityId || 'local' };
     localStorage.setItem('seniors', JSON.stringify([...seniors, newS]));
     return newS;
   }
@@ -409,10 +409,10 @@ export function setSubscriptionStatus(value: boolean): void {
 
 function getDefaultReminders(): Reminder[] {
   return [
-    { id: '1', user_id: 'local', type: 'medicine', title: 'Doliprane 500mg', time: '08:00', description: 'Après le petit déjeuner', active: true },
-    { id: '2', user_id: 'local', type: 'meal', title: 'Petit Déjeuner', time: '08:30', description: 'Penser aux fibres', active: true },
-    { id: '3', user_id: 'local', type: 'appointment', title: 'Dr Mansouri', time: '15:30', description: 'Visioconférence', active: true },
-    { id: '4', user_id: 'local', type: 'prayer', title: 'Prière Asr', time: '16:45', description: 'Moment calme', active: true }
+    { id: '1', user_id: 'local', type: 'medicine', title: 'Doliprane 500mg', time: '08:00', description: 'Après le petit déjeuner', active: true, facility_id: 'local' },
+    { id: '2', user_id: 'local', type: 'meal', title: 'Petit Déjeuner', time: '08:30', description: 'Penser aux fibres', active: true, facility_id: 'local' },
+    { id: '3', user_id: 'local', type: 'appointment', title: 'Dr Mansouri', time: '15:30', description: 'Visioconférence', active: true, facility_id: 'local' },
+    { id: '4', user_id: 'local', type: 'prayer', title: 'Prière Asr', time: '16:45', description: 'Moment calme', active: true, facility_id: 'local' }
   ];
 }
 
@@ -424,7 +424,8 @@ function getDefaultSeniors(): Senior[] {
       name: 'Mme. Fatma Ben Ali',
       age: 82,
       condition: 'Hypertension & Diabète de type 2',
-      image_url: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=400'
+      image_url: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=400',
+      facility_id: 'local'
     }
   ];
 }
@@ -465,11 +466,11 @@ export async function getDoctors(): Promise<Doctor[]> {
 
 function getDefaultDoctors(): Doctor[] {
   return [
-    { id: '1', name: 'Dr Sarah Mansouri',  specialty: 'Généraliste',      image_url: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 14:00", phone: '01 44 55 66 77', price: '25---',    rating: 4.9, active: true },
-    { id: '2', name: 'Dr Jean Dupont',     specialty: 'Cardiologue',       image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: 'Demain, 09:30',       phone: '01 22 33 44 55', price: '50---',    rating: 4.8, active: true },
-    { id: '3', name: 'Dr Marc Lefebvre',   specialty: 'Gériatre',          image_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400', availability: 'Vendredi, 11:15',     phone: '01 77 88 99 00', price: '40---',    rating: 5.0, active: true },
-    { id: '4', name: 'M. Karim Haddad',    specialty: 'Kinésithérapeute',  image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 16:00", phone: '01 88 77 66 55', price: '35---',    rating: 4.7, active: true },
-    { id: '5', name: 'Mme Clara Rossi',    specialty: 'Infirmière',        image_url: 'https://images.unsplash.com/photo-1590611380053-9da423dc03bb?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 17:45", phone: '01 66 55 44 33', price: 'Gratuit', rating: 4.9, active: true },
+    { id: '1', name: 'Dr Sarah Mansouri',  specialty: 'Généraliste',      image_url: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 14:00", phone: '01 44 55 66 77', price: '25---',    rating: 4.9, active: true, facility_id: 'local' },
+    { id: '2', name: 'Dr Jean Dupont',     specialty: 'Cardiologue',       image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: 'Demain, 09:30',       phone: '01 22 33 44 55', price: '50---',    rating: 4.8, active: true, facility_id: 'local' },
+    { id: '3', name: 'Dr Marc Lefebvre',   specialty: 'Gériatre',          image_url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400', availability: 'Vendredi, 11:15',     phone: '01 77 88 99 00', price: '40---',    rating: 5.0, active: true, facility_id: 'local' },
+    { id: '4', name: 'M. Karim Haddad',    specialty: 'Kinésithérapeute',  image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 16:00", phone: '01 88 77 66 55', price: '35---',    rating: 4.7, active: true, facility_id: 'local' },
+    { id: '5', name: 'Mme Clara Rossi',    specialty: 'Infirmière',        image_url: 'https://images.unsplash.com/photo-1590611380053-9da423dc03bb?auto=format&fit=crop&q=80&w=400', availability: "Aujourd'hui, 17:45", phone: '01 66 55 44 33', price: 'Gratuit', rating: 4.9, active: true, facility_id: 'local' },
   ];
 }
 
@@ -500,8 +501,8 @@ export async function getPsychologists(): Promise<Psychologist[]> {
 
 function getDefaultPsychologists(): Psychologist[] {
   return [
-    { id: '1', name: 'Dr. Marie Laurent', specialty: 'Gérontopsychologue', image_url: 'https://images.unsplash.com/photo-1559839734-2b71f15367ef?auto=format&fit=crop&q=80&w=200', availability: 'Disponible demain',        phone: '01 23 45 67 89', price: '60--- / séance', active: true },
-    { id: '2', name: 'Dr. Jean Dupont',   specialty: 'Thérapie Cognitive', image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200', availability: 'Disponible cette semaine', phone: '01 98 76 54 32', price: '55--- / séance', active: true },
+    { id: '1', name: 'Dr. Marie Laurent', specialty: 'Gérontopsychologue', image_url: 'https://images.unsplash.com/photo-1559839734-2b71f15367ef?auto=format&fit=crop&q=80&w=200', availability: 'Disponible demain',        phone: '01 23 45 67 89', price: '60--- / séance', active: true, facility_id: 'local' },
+    { id: '2', name: 'Dr. Jean Dupont',   specialty: 'Thérapie Cognitive', image_url: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=200', availability: 'Disponible cette semaine', phone: '01 98 76 54 32', price: '55--- / séance', active: true, facility_id: 'local' },
   ];
 }
 

@@ -80,25 +80,27 @@ begin
 
   if found then
     -- Staff member: insert profile with pre-assigned role and facility
-    insert into public.profiles (id, email, role, full_name, facility_id)
+    insert into public.profiles (id, email, role, full_name, facility_id, approved)
     values (
       new.id,
       new.email,
       whitelist_row.role,
       new.raw_user_meta_data ->> 'full_name',
-      whitelist_row.facility_id
+      whitelist_row.facility_id,
+      true
     );
     -- Remove from whitelist after use (prevents re-use)
     delete from allowed_staff where lower(email) = lower(new.email);
   else
     -- No whitelist entry: respect metadata from frontend signUp
-    insert into public.profiles (id, email, role, full_name, facility_id)
+    insert into public.profiles (id, email, role, full_name, facility_id, approved)
     values (
       new.id,
       new.email,
       coalesce(new.raw_user_meta_data ->> 'role', 'family'),
       new.raw_user_meta_data ->> 'full_name',
-      (new.raw_user_meta_data ->> 'facility_id')::uuid
+      (new.raw_user_meta_data ->> 'facility_id')::uuid,
+      coalesce((new.raw_user_meta_data->>'approved')::boolean, true)
     );
   end if;
 
