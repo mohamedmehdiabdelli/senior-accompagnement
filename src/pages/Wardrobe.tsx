@@ -143,8 +143,6 @@ export default function Wardrobe() {
     try {
       setScanLoading(true);
 
-      const publicUrl = await uploadClothingImage(scanFile, 'scans');
-
       const result = await searchLostClothing(scanFile);
       setScanResult(result);
     } catch (error: unknown) {

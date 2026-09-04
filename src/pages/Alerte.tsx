@@ -14,6 +14,7 @@ export default function Alerte() {
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     getFamilyContacts(userId).then(setFamilyContacts);
@@ -51,6 +52,23 @@ export default function Alerte() {
     }
   }, [showCamera, stream]);
 
+  useEffect(() => () => {
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    stream?.getTracks().forEach(track => track.stop());
+  }, [stream]);
+
+  const startHolding = () => {
+    setHolding(true);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(triggerAlert, 2000);
+  };
+
+  const stopHolding = () => {
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = null;
+    setHolding(false);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto pb-20">
       <div className="space-y-10">
@@ -75,16 +93,10 @@ export default function Alerte() {
               <p className="text-slate-500 text-sm">Maintenir 2s pour alerter</p>
             </div>
             <motion.button
-              onMouseDown={() => setHolding(true)}
-              onMouseUp={() => setHolding(false)}
-              onMouseLeave={() => setHolding(false)}
-              onTouchStart={() => setHolding(true)}
-              onTouchEnd={() => setHolding(false)}
-              onPointerDown={() => setHolding(true)}
-              onPointerUp={() => {
-                if (holding) triggerAlert();
-                setHolding(false);
-              }}
+              onPointerDown={startHolding}
+              onPointerUp={stopHolding}
+              onPointerCancel={stopHolding}
+              onPointerLeave={stopHolding}
               className={`w-full py-6 rounded-[2rem] text-xl font-black shadow-xl transition-all select-none touch-none ${
                 alertSent ? 'bg-green-500 text-white shadow-green-100' : 'bg-red-600 text-white hover:bg-red-700 shadow-red-200'
               }`}

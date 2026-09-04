@@ -10,10 +10,7 @@
  * - Uses Promise.all to load related tables in parallel
  * - Reduces from 4 separate requests to 1 batch operation
  */
-import { supabase, Reminder, Senior, Medicine, VitalRecord, CareLog, HealthProduct, ClothingItem } from './supabase';
-
-const isSupabaseConfigured = () => 
-  !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+import { supabase, isSupabaseConfigured, Reminder, Senior, Medicine, VitalRecord, CareLog, HealthProduct, ClothingItem } from './supabase';
 
 // --------- REMINDERS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

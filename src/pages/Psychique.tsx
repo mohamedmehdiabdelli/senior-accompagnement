@@ -34,6 +34,10 @@ export default function Psychique() {
 
     try {
       const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
+      if (!apiKey || apiKey.includes('your_key_here')) {
+        setMessages(prev => [...prev, { role: 'assistant', content: "Le compagnon IA n'est pas configuré pour le moment. Vous pouvez tout de même consulter les spécialistes disponibles." }]);
+        return;
+      }
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -59,6 +63,9 @@ Réponds en 2-3 phrases maximum pour rester accessible.`
       });
 
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || `Groq request failed: ${response.status}`);
+      }
       const text = data.choices?.[0]?.message?.content || "Je suis désolé, je n'ai pas pu répondre. Veuillez réessayer.";
       setMessages(prev => [...prev, { role: 'assistant', content: text }]);
     } catch (err) {

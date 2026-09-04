@@ -126,10 +126,19 @@ export default function AddClothing(){
     try {
       setIsLoading(true);
 
-      const publicUrl = await uploadClothingImage(photoFile, profile.id);
+      const publicUrl = isSupabaseConfigured()
+        ? await uploadClothingImage(photoFile, profile.id)
+        : await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(new Error('Impossible de lire la photo sélectionnée.'));
+            reader.readAsDataURL(photoFile);
+          });
 
-      const registrationResult = await registerClothingImage(photoFile, residentName.trim());
-      console.log('=== Hugging Face registration response ===', registrationResult);
+      if (isSupabaseConfigured() && import.meta.env.VITE_HF_API_REGISTER_URL && import.meta.env.VITE_HF_API_TOKEN) {
+        const registrationResult = await registerClothingImage(photoFile, residentName.trim());
+        console.log('=== Hugging Face registration response ===', registrationResult);
+      }
 
       const newItem = await addClothingItem(
         {

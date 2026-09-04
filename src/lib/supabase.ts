@@ -5,7 +5,12 @@ export const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export function isSupabaseConfigured() {
-  return !!supabaseUrl && !!supabaseAnonKey;
+  return Boolean(
+    supabaseUrl &&
+    supabaseAnonKey &&
+    !supabaseUrl.includes('YOUR-PROJECT') &&
+    !supabaseAnonKey.includes('your-anon-key-here')
+  );
 }
 
 // Bypasses the Web Locks API to entirely eradicate navigatorLock deadlocks
@@ -13,7 +18,7 @@ const noOpLock = async (name: string, acquireTimeout: number, fn: () => Promise<
   return await fn();
 };
 
-export const supabase = supabaseUrl && supabaseAnonKey
+export const supabase = isSupabaseConfigured()
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,

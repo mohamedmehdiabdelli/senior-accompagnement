@@ -71,7 +71,7 @@ const nursingHomeCategories = [
 export default function Home() {
   const { profile } = useAuth();
 
-  const categories = profile?.role === 'super_admin' ? nursingHomeCategories : elderlyCategories;
+  const categories = profile?.role !== 'family' ? nursingHomeCategories : elderlyCategories;
   const greetingName = profile?.full_name ? `, ${profile.full_name}` : '';
 
   return (
@@ -87,14 +87,14 @@ export default function Home() {
           Accès Complet
         </div>
         <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight title-serif leading-none">
-          {profile?.role === 'super_admin' ? (
+          {profile?.role !== 'family' ? (
             <>Votre espace <span className="text-blue-600 italic">aidants</span>{greetingName}</>
           ) : (
             <>Comment puis-je vous <br/> <span className="text-blue-600 italic">accompagner</span> aujourd'hui{greetingName} ?</>
           )}
         </h1>
         <p className="text-xl md:text-2xl text-slate-500 max-w-3xl mx-auto leading-relaxed">
-          {profile?.role === 'super_admin'
+          {profile?.role !== 'family'
             ? "Suivez vos résidents au quotidien : glycémie, pouls, humeur, médicaments."
             : "Un espace bienveillant conçu pour simplifier votre quotidien et prendre soin de vous, à chaque instant."}
         </p>

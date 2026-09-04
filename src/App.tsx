@@ -74,7 +74,7 @@ function AppShell() {
   }
 
   // Signed in → full app with role-aware routing
-  const isSuperAdmin = profile.role === 'super_admin';
+  const isFacilityStaff = ['super_admin', 'admin', 'caregiver'].includes(profile.role);
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] font-sans text-gray-900 overflow-x-hidden">
@@ -113,19 +113,19 @@ function AppShell() {
             {/* Nursing-home-only route */}
             <Route
               path="/caregiver"
-              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Caregiver /></PageWrapper>}
+              element={!isFacilityStaff ? <Navigate to="/" replace /> : <PageWrapper><Caregiver /></PageWrapper>}
             />
             <Route
               path="/vetements"
-              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><Wardrobe /></PageWrapper>}
+              element={!isFacilityStaff ? <Navigate to="/" replace /> : <PageWrapper><Wardrobe /></PageWrapper>}
             />
             <Route
               path="/vetements/ajouter"
-              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><AddClothing /></PageWrapper>}
+              element={!isFacilityStaff ? <Navigate to="/" replace /> : <PageWrapper><AddClothing /></PageWrapper>}
             />
             <Route
               path="/admin/staff"
-              element={!isSuperAdmin ? <Navigate to="/" replace /> : <PageWrapper><StaffManagement /></PageWrapper>}
+              element={profile.role !== 'super_admin' ? <Navigate to="/" replace /> : <PageWrapper><StaffManagement /></PageWrapper>}
             />
 
             <Route path="*" element={<Navigate to="/" replace />} />

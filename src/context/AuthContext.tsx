@@ -370,6 +370,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const approveWorkerRequest: AuthContextType['approveWorkerRequest'] = async (id) => {
     try {
       if (!isSupabaseConfigured()) {
+        const users = getLocalUsers().map(user => user.id === id ? { ...user, approved: true } : user);
+        saveLocalUsers(users);
         return { error: null };
       }
       const { error } = await supabase
@@ -387,6 +389,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const rejectWorkerRequest: AuthContextType['rejectWorkerRequest'] = async (id) => {
     try {
       if (!isSupabaseConfigured()) {
+        saveLocalUsers(getLocalUsers().filter(user => user.id !== id));
         return { error: null };
       }
       const { error } = await supabase
@@ -423,6 +426,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const removeWorker: AuthContextType['removeWorker'] = async (id) => {
     try {
       if (!isSupabaseConfigured()) {
+        saveLocalUsers(getLocalUsers().filter(user => user.id !== id));
         return { error: null };
       }
       const { error } = await supabase
@@ -459,7 +463,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getFacilities: AuthContextType['getFacilities'] = async () => {
     try {
       if (!isSupabaseConfigured()) {
-        return { data: null, error: 'Supabase n\'est pas configuré.' };
+        return { data: [{ id: 'local', name: 'Maison de retraite de démonstration' }], error: null };
       }
 
       const { data, error } = await supabase
