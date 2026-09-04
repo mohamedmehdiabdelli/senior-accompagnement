@@ -5,6 +5,7 @@ coverage/
 .DS_Store
 .agents/
 opencode.config
+.worktrees/
 *.log
 .env*
 !.env.example
