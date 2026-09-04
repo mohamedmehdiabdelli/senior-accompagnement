@@ -1,11 +1,48 @@
-import { Home, LogOut, Shield } from 'lucide-react';
+import { Home, LogOut, Shield, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export default function Header() {
   const location = useLocation();
   const isHome = location.pathname === '/';
   const { profile, signOut } = useAuth();
+  const [facilityName, setFacilityName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadFacility = async () => {
+      if (!profile?.facility_id) {
+        setFacilityName(null);
+        return;
+      }
+
+      if (!isSupabaseConfigured()) {
+        try {
+          const raw = localStorage.getItem('tamini_local_facilities');
+          const facilities = raw ? JSON.parse(raw) as { id: string; name: string }[] : [];
+          const facility = facilities.find(item => item.id === profile.facility_id);
+          if (mounted) setFacilityName(facility?.name ?? null);
+        } catch {
+          if (mounted) setFacilityName(null);
+        }
+        return;
+      }
+
+      const { data } = await supabase
+        .from('facilities')
+        .select('name')
+        .eq('id', profile.facility_id)
+        .maybeSingle();
+
+      if (mounted) setFacilityName(data?.name ?? null);
+    };
+
+    loadFacility();
+    return () => { mounted = false; };
+  }, [profile?.facility_id]);
 
   return (
     <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40 py-3 shadow-sm">
@@ -19,6 +56,16 @@ export default function Header() {
             />
           </div>
         </Link>
+
+        {facilityName && (
+          <div className="flex min-w-0 max-w-[38%] md:max-w-[42%] items-center gap-2 rounded-2xl bg-emerald-50 px-2 md:px-4 py-2 text-emerald-800 border border-emerald-100">
+            <Building2 size={18} className="shrink-0 text-emerald-600" />
+            <div className="min-w-0">
+              <span className="hidden md:block text-[10px] font-black uppercase tracking-wider text-emerald-600">Établissement</span>
+              <span className="block truncate font-bold text-sm" title={facilityName}>{facilityName}</span>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           {!isHome && (
