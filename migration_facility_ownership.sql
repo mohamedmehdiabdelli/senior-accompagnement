@@ -73,9 +73,12 @@ end;
 $$;
 
 alter table public.facilities enable row level security;
-drop policy if exists "Super admins read own facility" on public.facilities;
-create policy "Super admins read own facility" on public.facilities
-  for select using (owner_id = auth.uid());
+drop policy if exists "Facility members read their facility" on public.facilities;
+create policy "Facility members read their facility" on public.facilities
+  for select using (
+    owner_id = auth.uid()
+    or id = (select facility_id from public.profiles where id = auth.uid())
+  );
 
 drop policy if exists "Super admins manage own invitations" on public.allowed_staff;
 create policy "Super admins manage own invitations" on public.allowed_staff

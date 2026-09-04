@@ -14,7 +14,7 @@ export default function Header() {
     let mounted = true;
 
     const loadFacility = async () => {
-      if (!profile?.facility_id) {
+      if (!profile?.facility_id && profile?.role !== 'super_admin') {
         setFacilityName(null);
         return;
       }
@@ -31,11 +31,13 @@ export default function Header() {
         return;
       }
 
-      const { data } = await supabase
+      let query = supabase
         .from('facilities')
-        .select('name')
-        .eq('id', profile.facility_id)
-        .maybeSingle();
+        .select('name');
+
+      const { data } = profile.facility_id
+        ? await query.eq('id', profile.facility_id).maybeSingle()
+        : await query.eq('owner_id', profile.id).maybeSingle();
 
       if (mounted) setFacilityName(data?.name ?? null);
     };
