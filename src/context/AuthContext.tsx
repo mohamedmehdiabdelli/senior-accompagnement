@@ -232,24 +232,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
           return { error: 'Un compte existe déjà avec cet email.' };
         }
+        const localInvite = getLocalAllowedStaff().find(entry => entry.email.toLowerCase() === cleanEmail);
+        const finalRole = localInvite?.role || role;
+        const finalFacilityId = localInvite?.facility_id || (finalRole === 'super_admin' ? crypto.randomUUID() : null);
+        if (finalRole !== 'family' && finalRole !== 'super_admin' && !localInvite) {
+          return { error: 'Cet email doit être invité par une maison de retraite.' };
+        }
         const id = crypto.randomUUID();
-        const localFacilityId = role === 'super_admin' ? crypto.randomUUID() : facilityId || null;
         const newUser: LocalUser = {
           id,
           email: cleanEmail,
           password,
-          role,
+          role: finalRole,
           full_name: fullName,
-          facility_id: localFacilityId,
-          approved: role !== 'caregiver',
+          facility_id: finalFacilityId,
+          approved: finalRole !== 'caregiver',
           created_at: new Date().toISOString()
         };
         saveLocalUsers([...users, newUser]);
-        if (role === 'super_admin' && facilityName) {
-          saveLocalFacilities([...getLocalFacilities(), { id: localFacilityId!, name: facilityName }]);
+        if (finalRole === 'super_admin' && facilityName) {
+          saveLocalFacilities([...getLocalFacilities(), { id: finalFacilityId!, name: facilityName }]);
+        }
+        if (localInvite) {
+          saveLocalAllowedStaff(getLocalAllowedStaff().filter(entry => entry.email.toLowerCase() !== cleanEmail));
         }
         setLocalSession(newUser);
-        setProfile({ ...newUser, approved: role !== 'caregiver' });
+        setProfile({ ...newUser, approved: finalRole !== 'caregiver' });
         return { error: null, userId: id };
       }
 
