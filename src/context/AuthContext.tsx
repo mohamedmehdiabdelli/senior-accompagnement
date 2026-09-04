@@ -36,7 +36,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, role: UserRole, fullName?: string, facilityName?: string, facilityId?: string) => Promise<{ error: string | null; userId?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  inviteStaff: (email: string, role: UserRole, facilityId: string) => Promise<{ error: string | null }>;
+  inviteStaff: (email: string, role: UserRole) => Promise<{ error: string | null }>;
   revokeStaffAccess: (id: string) => Promise<{ error: string | null }>;
   getAllowedStaff: () => Promise<{ data: AllowedStaffEntry[] | null; error: string | null }>;
   getFacilities: () => Promise<{ data: Facility[] | null; error: string | null }>;
@@ -52,6 +52,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const LOCAL_USERS_KEY = 'tamini_local_users';
 const LOCAL_SESSION_KEY = 'tamini_local_session';
 const LOCAL_ALLOWED_STAFF_KEY = 'tamini_local_allowed_staff';
+const LOCAL_FACILITIES_KEY = 'tamini_local_facilities';
 
 interface LocalUser {
   id: string;
@@ -97,6 +98,17 @@ function getLocalAllowedStaff(): { email: string; role: UserRole; facility_id: s
 }
 function saveLocalAllowedStaff(list: { email: string; role: UserRole; facility_id: string }[]) {
   try { localStorage.setItem(LOCAL_ALLOWED_STAFF_KEY, JSON.stringify(list)); } catch {}
+}
+
+function getLocalFacilities(): Facility[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_FACILITIES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveLocalFacilities(list: Facility[]) {
+  try { localStorage.setItem(LOCAL_FACILITIES_KEY, JSON.stringify(list)); } catch {}
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -221,17 +233,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { error: 'Un compte existe déjà avec cet email.' };
         }
         const id = crypto.randomUUID();
+        const localFacilityId = role === 'super_admin' ? crypto.randomUUID() : facilityId || null;
         const newUser: LocalUser = {
           id,
           email: cleanEmail,
           password,
           role,
           full_name: fullName,
-          facility_id: facilityId || null,
+          facility_id: localFacilityId,
           approved: role !== 'caregiver',
           created_at: new Date().toISOString()
         };
         saveLocalUsers([...users, newUser]);
+        if (role === 'super_admin' && facilityName) {
+          saveLocalFacilities([...getLocalFacilities(), { id: localFacilityId!, name: facilityName }]);
+        }
         setLocalSession(newUser);
         setProfile({ ...newUser, approved: role !== 'caregiver' });
         return { error: null, userId: id };
@@ -278,13 +294,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userId = data.user.id;
 
       if (isSuperAdmin && facilityName && !invite) {
-        const { error: rpcError } = await supabase.rpc('create_tenant', {
+         const { data: createdFacilityId, error: rpcError } = await supabase.rpc('create_facility_for_owner', {
           facility_name: facilityName
         });
 
-        if (rpcError) {
-          return { error: "Erreur lors de la création de l'établissement : " + rpcError.message };
-        }
+         if (rpcError) {
+            return { error: "Erreur lors de la création de l'établissement : " + rpcError.message };
+         }
+         if (!createdFacilityId) return { error: "L'établissement n'a pas pu être créé." };
       }
 
       await loadProfile(userId);
@@ -296,20 +313,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const inviteStaff: AuthContextType['inviteStaff'] = async (email, role, facilityId) => {
+  const inviteStaff: AuthContextType['inviteStaff'] = async (email, role) => {
     try {
       if (!isSupabaseConfigured()) {
         const list = getLocalAllowedStaff();
         if (list.some(x => x.email.toLowerCase() === email.toLowerCase())) {
           return { error: 'Cet email a déjà été invité.' };
         }
-        saveLocalAllowedStaff([...list, { email: email.toLowerCase(), role, facility_id: facilityId }]);
+        if (!profile?.facility_id || profile.role !== 'super_admin') return { error: 'Aucune maison de retraite active.' };
+        saveLocalAllowedStaff([...list, { email: email.toLowerCase(), role, facility_id: profile.facility_id }]);
         return { error: null };
       }
 
-      const { error } = await supabase
-        .from('allowed_staff')
-        .insert({ email: email.toLowerCase(), role, facility_id: facilityId });
+      const { error } = await supabase.rpc('invite_staff_for_my_facility', {
+        invited_email: email.toLowerCase(),
+        invited_role: role
+      });
       if (error) {
         if (error.code === '23505') {
           return { error: 'Cet email a déjà été invité.' };
@@ -463,7 +482,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const getFacilities: AuthContextType['getFacilities'] = async () => {
     try {
       if (!isSupabaseConfigured()) {
-        return { data: [{ id: 'local', name: 'Maison de retraite de démonstration' }], error: null };
+        return { data: getLocalFacilities(), error: null };
       }
 
       const { data, error } = await supabase

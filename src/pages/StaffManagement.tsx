@@ -13,12 +13,12 @@ export default function StaffManagement() {
     approveWorkerRequest,
     rejectWorkerRequest,
     getFacilityStaff,
-    removeWorker
+    removeWorker,
+    profile
   } = useAuth();
 
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('caregiver');
-  const [facilityId, setFacilityId] = useState('');
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -50,12 +50,7 @@ export default function StaffManagement() {
     ]);
 
     if (staffRes.data) setStaffList(staffRes.data);
-    if (facRes.data) {
-      setFacilities(facRes.data);
-      if (!facRes.data.some(f => f.id === facilityId) && facRes.data.length > 0) {
-        setFacilityId(facRes.data[0].id);
-      }
-    }
+    if (facRes.data) setFacilities(facRes.data);
     if (pendingRes.data) setPendingRequests(pendingRes.data);
     if (activeRes.data) setActiveStaff(activeRes.data);
 
@@ -73,14 +68,9 @@ export default function StaffManagement() {
       setError('Veuillez saisir une adresse email.');
       return;
     }
-    if (!facilityId) {
-      setError('Veuillez sélectionner un établissement.');
-      return;
-    }
-
     try {
       setInviting(true);
-      const result = await inviteStaff(email.trim(), role, facilityId);
+      const result = await inviteStaff(email.trim(), role);
 
       if (result.error) {
         setError(result.error);
@@ -222,7 +212,7 @@ export default function StaffManagement() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Email */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-slate-700">Adresse email</label>
@@ -254,22 +244,9 @@ export default function StaffManagement() {
             </div>
           </div>
 
-          {/* Facility */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">Établissement</label>
-            <div className="relative">
-              <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
-              <select
-                value={facilityId}
-                onChange={e => setFacilityId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all text-sm appearance-none cursor-pointer"
-              >
-                <option value="">Sélectionner...</option>
-                {facilities.map(f => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
-                ))}
-              </select>
-            </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3.5 text-sm text-indigo-900">
+            <Building2 size={18} className="shrink-0 text-indigo-600" />
+            <span><strong>{facilities.find(f => f.id === profile?.facility_id)?.name ?? 'Votre établissement'}</strong><br />ID: {profile?.facility_id ?? 'non attribué'}</span>
           </div>
         </div>
 
