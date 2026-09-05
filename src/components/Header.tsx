@@ -52,8 +52,8 @@ export default function Header() {
         <Link to="/" className="flex items-center py-2 pr-2 group">
           <div className="flex items-center shrink-0 group-hover:scale-110 transition-transform">
             <img
-              src="/logo-tameni.png"
-              alt="Tameni"
+              src="/tamini-logo.png"
+              alt="Tamini"
               className="h-16 md:h-20 w-auto object-contain"
             />
           </div>

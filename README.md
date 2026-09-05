@@ -242,7 +242,7 @@ Le dépôt contient `vercel.json` pour gérer le routage côté client. C'est im
 
 ## Branding
 
-Le logo de l'application est stocké dans `src/images/Tamani.png`.
+Le logo principal de l'application est servi depuis `public/tamini-logo.png` et provient du dossier `favicon_io/`.
 
 Si vous souhaitez changer l'identité visuelle, adaptez ce fichier ou modifiez les imports dans les composants de navigation et de landing.
 

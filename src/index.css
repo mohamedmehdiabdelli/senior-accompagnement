@@ -2,14 +2,14 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  --color-brand-bg: #FDFBF7;
-  --color-brand-primary: #1E40AF;
-  --color-brand-accent: #D97706;
+  --color-brand-bg: #f5efe5;
+  --color-brand-primary: #8b5e34;
+  --color-brand-accent: #c08a45;
 }
 
 @layer base {
   body {
-    @apply font-sans bg-brand-bg text-slate-900 antialiased;
+    @apply font-sans bg-brand-bg text-stone-900 antialiased;
   }
 }
 
@@ -19,10 +19,42 @@
 }
 
 .premium-shadow {
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 20px 40px -15px rgba(93, 62, 32, 0.16);
 }
 
 .title-serif {
   font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+@layer utilities {
+  .bg-brand-bg { background-color: #f5efe5; }
+  .bg-blue-600 { background-color: #8b5e34; }
+  .bg-blue-700 { background-color: #704824; }
+  .bg-blue-500 { background-color: #a87942; }
+  .bg-blue-50 { background-color: #f5ead9; }
+  .text-blue-600 { color: #8b5e34; }
+  .text-blue-700 { color: #704824; }
+  .text-blue-500 { color: #a87942; }
+  .text-blue-300 { color: #e6c58f; }
+  .border-blue-600 { border-color: #8b5e34; }
+  .border-blue-400 { border-color: #c08a45; }
+  .border-blue-200 { border-color: #e2c99f; }
+  .ring-blue-100 { --tw-ring-color: #f0dfc2; }
+  .shadow-blue-100 { --tw-shadow-color: rgba(139, 94, 52, 0.16); }
+  .shadow-blue-600\/30 { --tw-shadow-color: rgba(139, 94, 52, 0.3); }
+  .bg-indigo-700 { background-color: #6b4729; }
+  .bg-indigo-600 { background-color: #8b5e34; }
+  .bg-indigo-950 { background-color: #332114; }
+  .bg-indigo-50 { background-color: #f3e8d8; }
+  .text-indigo-600 { color: #8b5e34; }
+  .text-indigo-700 { color: #6b4729; }
+  .text-indigo-950 { color: #332114; }
+  .border-indigo-400 { border-color: #c08a45; }
+  .bg-purple-600 { background-color: #987044; }
+  .bg-purple-700 { background-color: #76512f; }
+  .bg-purple-50 { background-color: #f4e9d8; }
+  .text-purple-600 { color: #8b5e34; }
+  .text-purple-700 { color: #76512f; }
+  .border-purple-400 { border-color: #c08a45; }
 }
 
