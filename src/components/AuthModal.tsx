@@ -113,7 +113,7 @@ export default function AuthModal({ isOpen, initialMode, onClose }: AuthModalPro
           <div className="p-8 md:p-10 space-y-6 flex flex-col items-center justify-center">
             <div className="text-center space-y-2 w-full">
               <div className="flex items-center justify-center w-full shrink-0">
-                <img src="/tamini-logo.png" alt="Tamini" className="h-16 md:h-20 w-auto object-contain mx-auto mb-4 shrink-0" />
+                <img src="/tamini-logo.png" alt="Tamini" className="h-16 w-16 md:h-20 md:w-20 rounded-full object-cover mx-auto mb-4 shrink-0" />
               </div>
               <h2 className="text-3xl font-bold text-slate-900 title-serif">
                 {mode === 'signin' ? 'Bon retour !' : 'Créer votre compte'}

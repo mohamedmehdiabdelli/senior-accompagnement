@@ -54,7 +54,7 @@ export default function Header() {
             <img
               src="/tamini-logo.png"
               alt="Tamini"
-              className="h-16 md:h-20 w-auto object-contain"
+              className="h-16 w-16 md:h-20 md:w-20 rounded-full object-cover"
             />
           </div>
         </Link>

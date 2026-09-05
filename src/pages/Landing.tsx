@@ -18,7 +18,7 @@ export default function Landing({ onSignIn, onSignUp }: LandingProps) {
       <header className="relative z-10 px-6 md:px-12 py-3 flex justify-between items-center">
         <div className="flex items-center py-2">
           <div className="flex items-center shrink-0">
-            <img src="/tamini-logo.png" alt="Tamini" className="h-16 md:h-20 w-auto object-contain" />
+            <img src="/tamini-logo.png" alt="Tamini" className="h-16 w-16 md:h-20 md:w-20 rounded-full object-cover" />
           </div>
         </div>
         <div className="flex gap-3">
